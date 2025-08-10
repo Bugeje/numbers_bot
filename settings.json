@@ -1,0 +1,7 @@
+{
+  "git.autofetch": true,
+  "git.fetchOnFocus": true,
+  "git.confirmSync": false,
+  "git.allowForcePush": false,
+  "git.pruneOnFetch": true
+}

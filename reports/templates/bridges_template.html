@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Отчёт по мостам</title>
+</head>
+<body>
+  <h1>🪄 Мосты нумерологического профиля</h1>
+
+  <div class="block">
+    <span class="label">Имя:</span> {{ name }}<br>
+    <span class="label">Дата рождения:</span> {{ birthdate }}
+  </div>
+
+  <div class="block">
+    <table class="table bridges-table">
+      <thead>
+        <tr><th>Тип моста</th><th>Значение</th></tr>
+      </thead>
+      <tbody>
+        {% for label, value in bridges.items() %}
+          <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="block">
+    <span class="label">🧠 Интерпретация от ИИ:</span>
+    <div class="ai-block">{{ analysis_bridges }}</div>
+  </div>
+</body>
+</html>

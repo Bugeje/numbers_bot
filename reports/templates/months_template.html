@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+
+  <h1>📆 Цикл индивидуальных месяцев</h1>
+
+  <div class="block">
+    <span class="label">Имя:</span> {{ name }}<br>
+    <span class="label">Дата рождения:</span> {{ birthdate }}
+  </div>
+
+  {% if personal_months %}
+  <div class="block">
+    <table class="table personal-months-table">
+      <thead>
+        <tr>
+          <th>Личный год</th>
+          {% for month in month_names %}
+            <th>{{ month }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for year, months in personal_months.items() %}
+          <tr>
+            <td><strong>{{ year }}</strong></td>
+            {% for val in months %}
+              <td>{{ val }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>    
+  </div>
+  {% endif %}
+  
+</body>
+</html>

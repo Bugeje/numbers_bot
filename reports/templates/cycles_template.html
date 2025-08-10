@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+
+  <h1>🔺 Вершины и индивидуальные годы</h1>
+
+  <div class="block">
+    <span class="label">Имя:</span> {{ name }}<br>
+    <span class="label">Дата рождения:</span> {{ birthdate }}
+  </div>
+
+  {% if pinnacle_columns %}
+  <div class="block">
+    <table class="table pinnacles-table">
+      <thead>
+        <tr>
+          {% for col in pinnacle_columns %}
+            <th>{{ col.header }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% set max_len = pinnacle_columns | map(attribute='rows') | map('length') | max %}
+        {% for i in range(max_len) %}
+          <tr>
+            {% for col in pinnacle_columns %}
+              <td>
+                {% if i < col.rows|length %}
+                  <div class="pinnacle-cell">
+                    <div class="year">{{ col.rows[i][0] }}</div>
+                    <div class="value">{{ col.rows[i][1] }}</div>
+                  </div>
+                {% else %}
+                  &nbsp;
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</body>
+</html>

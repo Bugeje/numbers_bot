@@ -1,0 +1,95 @@
+from telegram.ext import (
+    ApplicationBuilder,
+    ConversationHandler,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters
+)
+from telegram.request import HTTPXRequest
+
+from handlers import (
+    start,
+    show_extended_only_profile,
+    send_bridges_pdf,
+    send_core_pdf,
+    save_name_and_ask_birthdate,
+    request_partner_name,
+    save_partner_name_and_ask_birthdate,
+    handle_calendar_selection,
+    show_cycles_profile,
+    send_months_pdf,
+    days_conversation_handler,
+    State
+)
+
+from config import TELEGRAM_TOKEN
+import logging
+
+
+def main():
+    request = HTTPXRequest(
+        read_timeout=30.0,
+        write_timeout=30.0,
+        connect_timeout=30.0,
+        pool_timeout=30.0
+    )
+
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).request(request).build()
+
+
+    conv_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler("start", start),
+            MessageHandler(filters.Regex("^(🔁 Старт)$"), start)
+        ],
+        states={
+            State.ASK_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, save_name_and_ask_birthdate)
+            ],
+            State.ASK_BIRTHDATE: [
+                CallbackQueryHandler(handle_calendar_selection)
+            ],
+            State.EXTENDED_ANALYSIS: [
+                MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name),
+                MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf),
+                MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile),
+                MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf),
+                MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile),
+                MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf)
+            ],
+            State.ASK_PARTNER_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate)
+            ],
+            State.ASK_PARTNER_BIRTHDATE: [
+                CallbackQueryHandler(handle_calendar_selection)
+            ]
+        },
+        fallbacks=[MessageHandler(filters.Regex("^🔁 Старт$"), start)]
+    )
+
+
+    app.add_handler(conv_handler)
+
+    app.add_handler(days_conversation_handler)
+
+    app.add_handler(MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name))
+    app.add_handler(MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf))
+    app.add_handler(MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile))
+    app.add_handler(MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf))
+    app.add_handler(MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile))
+    app.add_handler(MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf))
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate))
+    app.add_handler(CallbackQueryHandler(handle_calendar_selection))    
+    app.add_handler(MessageHandler(filters.Regex("^🔁 Старт$"), start))
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info("Бот запущен...")
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()

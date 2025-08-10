@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <h1>🧠 Нумерологический портрет</h1>
+
+  <div class="block">
+    <span class="label">Имя:</span> {{ name }}<br>
+    <span class="label">Дата рождения:</span> {{ birthdate }}
+  </div>
+
+  <div class="block">
+    <span class="label">🔢 Числа ядра личности:</span>
+    <table class="table core-profile-table">
+      <thead>
+        <tr><th>Показатель</th><th>Значение</th></tr>
+      </thead>
+      <tbody>
+        {% for label, value in profile.items() %}
+          {% if label in ['Жизненный путь', 'День рождения', 'Выражение', 'Душа', 'Личность'] %}
+            <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="block">
+    <span class="label">🧠 Индивидуальный анализ:</span>
+    <div class="ai-block">{{ analysis }}</div>
+  </div>
