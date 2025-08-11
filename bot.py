@@ -1,3 +1,4 @@
+from handlers.states import State
 from telegram.ext import (
     ApplicationBuilder,
     ConversationHandler,
@@ -7,6 +8,7 @@ from telegram.ext import (
     filters
 )
 from telegram.request import HTTPXRequest
+from settings import settings
 
 from handlers import (
     start,
@@ -23,19 +25,13 @@ from handlers import (
     State
 )
 
-from config import TELEGRAM_TOKEN
 import logging
 
 
 def main():
-    request = HTTPXRequest(
-        read_timeout=30.0,
-        write_timeout=30.0,
-        connect_timeout=30.0,
-        pool_timeout=30.0
-    )
+    request = HTTPXRequest(read_timeout=settings.HTTP_TIMEOUT, write_timeout=settings.HTTP_TIMEOUT, connect_timeout=settings.HTTP_TIMEOUT, pool_timeout=settings.HTTP_TIMEOUT)
 
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).request(request).build()
+    app = ApplicationBuilder().token(settings.TELEGRAM_TOKEN).request(request).build()
 
 
     conv_handler = ConversationHandler(
@@ -44,13 +40,13 @@ def main():
             MessageHandler(filters.Regex("^(🔁 Старт)$"), start)
         ],
         states={
-            State.ASK_NAME: [
+            State.State.ASK_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, save_name_and_ask_birthdate)
             ],
-            State.ASK_BIRTHDATE: [
+            State.State.ASK_BIRTHDATE: [
                 CallbackQueryHandler(handle_calendar_selection)
             ],
-            State.EXTENDED_ANALYSIS: [
+            State.State.EXTENDED_ANALYSIS: [
                 MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name),
                 MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf),
                 MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile),
@@ -58,10 +54,10 @@ def main():
                 MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile),
                 MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf)
             ],
-            State.ASK_PARTNER_NAME: [
+            State.State.ASK_PARTNER_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate)
             ],
-            State.ASK_PARTNER_BIRTHDATE: [
+            State.State.ASK_PARTNER_BIRTHDATE: [
                 CallbackQueryHandler(handle_calendar_selection)
             ]
         },
