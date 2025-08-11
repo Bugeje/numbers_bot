@@ -16,7 +16,7 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
 
     if not all([name, birthdate, core_profile]):
         await update.message.reply_text("❌ Недостаточно данных для анализа.")
-        return State.EXTENDED_ANALYSIS
+        return State.State.EXTENDED_ANALYSIS
 
     await update.message.reply_text("🔄 Считаю расширенные числа...")
 

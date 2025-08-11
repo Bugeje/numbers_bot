@@ -3,3 +3,4 @@ httpx
 python-dotenv
 jinja2 
 weasyprint
+pydantic-settings

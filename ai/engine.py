@@ -1,44 +1,53 @@
-import os
 import httpx
-from config import OPENROUTER_API_KEY, AI_TEMPERATURE, AI_MAX_TOKENS
+from settings import settings
 
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
+API_URL = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
 MODEL = "openai/gpt-4o"
-DEBUG = True
+DEBUG = False
 
-async def ask_openrouter(system_prompt: str, user_prompt: str, temperature: float = AI_TEMPERATURE, max_tokens: int = AI_MAX_TOKENS) -> str:
-    if not OPENROUTER_API_KEY:
+async def ask_openrouter(system_prompt: str, user_prompt: str, *, 
+                         temperature: float = None, max_tokens: int = None) -> str:
+    import asyncio, httpx
+    temperature = settings.AI_TEMPERATURE if temperature is None else temperature
+    max_tokens = settings.AI_MAX_TOKENS if max_tokens is None else max_tokens
+
+    if settings.OPENROUTER_API_KEY is None:
         return "❌ Ошибка: отсутствует API-ключ OpenRouter. Проверь .env."
 
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "X-Title": "NumerologyBot"
     }
-
     payload = {
-        "model": MODEL,
+        "model": "openai/gpt-4o",
         "temperature": temperature,
         "max_tokens": max_tokens,
         "messages": [
             {"role": "system", "content": system_prompt.strip()},
-            {"role": "user", "content": user_prompt.strip()}
-        ]
+            {"role": "user", "content": user_prompt.strip()},
+        ],
     }
 
-    if DEBUG:
-        print("\n[AI PROMPT DEBUG]")
-        print("System:", system_prompt.strip())
-        print("User:", user_prompt.strip())
-        print("[END DEBUG]\n")
+    # ленивый общий клиент
+    global _client
+    if "_client" not in globals() or _client is None:
+        _client = httpx.AsyncClient(timeout=httpx.Timeout(settings.HTTP_TIMEOUT))
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(API_URL, headers=headers, json=payload)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"].strip()
-    except httpx.HTTPStatusError as e:
-        return f"❌ Ошибка {e.response.status_code}: {e.response.reason_phrase}"
-    except Exception as e:
-        return f"[Сетевая ошибка AI: {e}]"
-
+    delay = 0.5
+    for attempt in range(3):
+        try:
+            resp = await _client.post(API_URL, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if attempt < 2 and (status in (429, 500, 502, 503, 504) or status is None):
+                await asyncio.sleep(delay); delay *= 2; continue
+            if status is not None:
+                try:
+                    reason = e.response.reason_phrase
+                except Exception:
+                    reason = "HTTP error"
+                return f"❌ Ошибка {status}: {reason}"
+            return f"[Сетевая ошибка AI: {e}]"

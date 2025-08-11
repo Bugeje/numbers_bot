@@ -13,7 +13,7 @@ from .states import State
 async def request_partner_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["selecting_partner"] = True
     await update.message.reply_text("Введите имя и фамилию второго партнёра:")
-    return State.ASK_PARTNER_NAME
+    return State.State.ASK_PARTNER_NAME
 
 
 async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -22,7 +22,7 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
     
     context.user_data["partner_name"] = update.message.text.strip()
     await update.message.reply_text("📅 Выберите дату рождения партнёра:", reply_markup=build_year_keyboard())
-    return State.ASK_PARTNER_BIRTHDATE
+    return State.State.ASK_PARTNER_BIRTHDATE
 
 
 async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_TYPE):

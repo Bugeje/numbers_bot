@@ -6,15 +6,15 @@ from .prompts import (
     compatibility_prompt, 
     days_prompt)
 from .system_prompts import SYSTEM_PROMPTS
-from config import AI_TEMPERATURE, AI_MAX_TOKENS
+from settings import settings
 
 
 async def get_ai_analysis(core_profile: dict) -> str:
     return await ask_openrouter(
         SYSTEM_PROMPTS["profile"],
         profile_prompt(core_profile),
-        temperature=AI_TEMPERATURE,
-        max_tokens=AI_MAX_TOKENS
+        temperature=settings.AI_TEMPERATURE,
+        max_tokens=settings.AI_MAX_TOKENS
     )
 
 
@@ -22,8 +22,8 @@ async def get_extended_analysis(extended_profile: dict) -> str:
     return await ask_openrouter(
         SYSTEM_PROMPTS["extended"],
         extended_prompt(extended_profile),
-        temperature=AI_TEMPERATURE,
-        max_tokens=AI_MAX_TOKENS
+        temperature=settings.AI_TEMPERATURE,
+        max_tokens=settings.AI_MAX_TOKENS
     )
 
 
@@ -31,8 +31,8 @@ async def get_bridges_analysis(bridges: dict) -> str:
     return await ask_openrouter(
         SYSTEM_PROMPTS["bridges"],
         bridges_prompt(bridges),
-        temperature=AI_TEMPERATURE,
-        max_tokens=AI_MAX_TOKENS
+        temperature=settings.AI_TEMPERATURE,
+        max_tokens=settings.AI_MAX_TOKENS
     )
 
 
@@ -40,8 +40,8 @@ async def get_compatibility_interpretation(profile_a: dict, profile_b: dict) -> 
     return await ask_openrouter(
         SYSTEM_PROMPTS["compatibility"],
         compatibility_prompt(profile_a, profile_b),
-        temperature=AI_TEMPERATURE,
-        max_tokens=AI_MAX_TOKENS
+        temperature=settings.AI_TEMPERATURE,
+        max_tokens=settings.AI_MAX_TOKENS
     )
 
 
@@ -81,6 +81,6 @@ async def get_calendar_analysis(
             gradients=gradients,
             fusion_groups=fusion_groups
         ),
-        temperature=AI_TEMPERATURE,
-        max_tokens=AI_MAX_TOKENS
+        temperature=settings.AI_TEMPERATURE,
+        max_tokens=settings.AI_MAX_TOKENS
     )
