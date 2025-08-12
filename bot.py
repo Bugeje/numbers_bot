@@ -40,13 +40,13 @@ def main():
             MessageHandler(filters.Regex("^(🔁 Старт)$"), start)
         ],
         states={
-            State.State.ASK_NAME: [
+            State.ASK_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, save_name_and_ask_birthdate)
             ],
-            State.State.ASK_BIRTHDATE: [
+            State.ASK_BIRTHDATE: [
                 CallbackQueryHandler(handle_calendar_selection)
             ],
-            State.State.EXTENDED_ANALYSIS: [
+            State.EXTENDED_ANALYSIS: [
                 MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name),
                 MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf),
                 MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile),
@@ -54,10 +54,10 @@ def main():
                 MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile),
                 MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf)
             ],
-            State.State.ASK_PARTNER_NAME: [
+            State.ASK_PARTNER_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate)
             ],
-            State.State.ASK_PARTNER_BIRTHDATE: [
+            State.ASK_PARTNER_BIRTHDATE: [
                 CallbackQueryHandler(handle_calendar_selection)
             ]
         },

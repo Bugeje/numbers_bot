@@ -21,7 +21,7 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
         year = int(data.split("_")[2])
         context.user_data["year"] = year
         await query.edit_message_text(f"📅 Год: {year}\nТеперь выберите месяц:", reply_markup=build_month_keyboard(year))
-        return State.State.ASK_BIRTHDATE
+        return State.ASK_BIRTHDATE
 
     elif data.startswith("cal_month_"):
         _, _, year, month = data.split("_")
@@ -30,7 +30,7 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
         context.user_data["year"] = year
         context.user_data["month"] = month
         await query.edit_message_text(f"📅 {MONTHS[month-1]} {year}\nВыберите день:", reply_markup=build_day_keyboard(year, month))
-        return State.State.ASK_BIRTHDATE
+        return State.ASK_BIRTHDATE
 
     elif data.startswith("cal_day_"):
         _, _, year, month, day = data.split("_")
@@ -48,9 +48,9 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
 
     elif data == "cal_back_year":
         await query.edit_message_text("📅 Выберите год:", reply_markup=build_year_keyboard())
-        return State.State.ASK_BIRTHDATE
+        return State.ASK_BIRTHDATE
 
     elif data.startswith("cal_back_month_"):
         year = int(data.split("_")[-1])
         await query.edit_message_text(f"📅 Год: {year}\nВыберите месяц:", reply_markup=build_month_keyboard(year))
-        return State.State.ASK_BIRTHDATE
+        return State.ASK_BIRTHDATE

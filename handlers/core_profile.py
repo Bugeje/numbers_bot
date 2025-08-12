@@ -39,7 +39,7 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=build_after_analysis_keyboard()
         )
 
-        return State.State.EXTENDED_ANALYSIS
+        return State.EXTENDED_ANALYSIS
 
     except Exception as e:
         await update.effective_message.reply_text(f"❌ Ошибка при расчёте: {e}")
@@ -53,7 +53,7 @@ async def send_core_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not all([name, birthdate, profile]):
         await update.message.reply_text("❌ Не хватает данных для формирования отчёта.")
-        return State.State.EXTENDED_ANALYSIS
+        return State.EXTENDED_ANALYSIS
 
     await update.message.reply_text("🤖 Генерирую интерпретацию ядра личности с помощью ИИ, подождите...")
 
