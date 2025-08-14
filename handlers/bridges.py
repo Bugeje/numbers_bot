@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from ai import get_bridges_analysis
 from reports import generate_bridges_pdf
 from ui import build_after_analysis_keyboard
+from utils import run_blocking
 import tempfile
 
 
@@ -24,7 +25,8 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        generate_bridges_pdf(
+        await run_blocking(
+            generate_bridges_pdf,
             name=name,
             birthdate=birthdate,
             bridges=bridges,

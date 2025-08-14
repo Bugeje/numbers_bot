@@ -16,6 +16,7 @@ from ui import (
     SELECT_MONTH
 )
 from reports import generate_pdf
+from utils import run_blocking
 
 import tempfile
 from datetime import datetime
@@ -85,7 +86,8 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        generate_pdf(
+        await run_blocking(
+            generate_pdf,
             name=name,
             birthdate=birthdate,
             profile=profile,

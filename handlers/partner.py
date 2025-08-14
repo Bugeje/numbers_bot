@@ -5,6 +5,7 @@ from numerology import calculate_core_profile
 from ai import get_compatibility_interpretation
 from ui import build_year_keyboard, build_after_analysis_keyboard
 from reports import generate_partner_pdf
+from utils import run_blocking
 import tempfile
 
 from .states import State
@@ -47,7 +48,8 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
         interpretation = await get_compatibility_interpretation(profile_a, profile_b)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            generate_partner_pdf(
+            await run_blocking(
+                generate_partner_pdf,
                 name_a, birth_a, profile_a,
                 name_b, birth_b, profile_b,
                 interpretation=interpretation,

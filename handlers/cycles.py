@@ -9,6 +9,7 @@ from numerology.cycles import (
 )
 from reports.cycles_report import generate_cycles_pdf
 from ui import build_after_analysis_keyboard
+from utils import run_blocking
 
 
 async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,7 +26,14 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
         personal_year_blocks = split_years_by_pinnacles(birthdate)
 
         # Генерация PDF
-        pdf_path = generate_cycles_pdf(name, birthdate, personal_years, pinnacles, personal_year_blocks)
+        pdf_path = await run_blocking(
+            generate_cycles_pdf, 
+            name, 
+            birthdate, 
+            personal_years, 
+            pinnacles, 
+            personal_year_blocks
+        )
 
         with open(pdf_path, "rb") as f:
             await update.message.reply_document(document=f, filename="cycles.pdf")

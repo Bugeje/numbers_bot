@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from numerology.cycles import generate_personal_month_cycle_table, MONTH_NAMES
 from reports import create_months_report_pdf
 from ui import build_after_analysis_keyboard
+from utils import run_blocking
 
 import tempfile
 
@@ -22,7 +23,14 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Генерация PDF
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        create_months_report_pdf(name, birthdate, month_cycles, tmp.name)
+        await run_blocking(
+            create_months_report_pdf,
+            name, 
+            birthdate, 
+            month_cycles, 
+            tmp.name
+        )
+
         await update.message.reply_document(
             document=open(tmp.name, "rb"),
             filename="Анализ_месяцев.pdf"

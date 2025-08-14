@@ -6,6 +6,7 @@ from reports import generate_core_pdf
 from ai import get_ai_analysis
 from ui import build_after_analysis_keyboard
 from .states import State
+from utils import run_blocking
 import tempfile
 
 
@@ -64,7 +65,8 @@ async def send_core_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         interpretation = "⚠️ Не удалось получить интерпретацию от ИИ. Пожалуйста, попробуйте позже."
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        generate_core_pdf(
+        await run_blocking(
+            generate_core_pdf,
             name=name,
             birthdate=birthdate,
             profile=profile,

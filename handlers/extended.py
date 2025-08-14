@@ -6,6 +6,7 @@ from numerology.extended import calculate_extended_profile
 from ai import get_extended_analysis
 from reports import generate_extended_pdf
 from ui import build_after_analysis_keyboard
+from utils import run_blocking
 from .states import State
 
 
@@ -24,7 +25,8 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
     ai_ext = await get_extended_analysis(extended)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        generate_extended_pdf(
+        await run_blocking(
+            generate_extended_pdf,
             name=name,
             birthdate=birthdate,
             extended=extended,
