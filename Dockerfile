@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY numbers_bot/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
-
-COPY numbers_bot /app
+COPY . /app
 CMD ["python", "-m", "bot"]

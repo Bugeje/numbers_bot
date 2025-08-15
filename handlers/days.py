@@ -13,10 +13,9 @@ from ui import (
     ASK_DAYS_MONTHYEAR_PROMPT
 )
 from reports import generate_pdf
-from utils import run_blocking, parse_month_year
+from utils import run_blocking, parse_month_year, RU_MONTHS_FULL
 
 import tempfile
-from datetime import datetime
 
 from ai import get_calendar_analysis, get_active_components
 from reports import mark_calendar_cells
@@ -75,7 +74,7 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     gradient_descriptions = [legend.get(g, g) for g in gradients if g in legend]
 
-    month_name = datetime(year, month, 1).strftime("%B %Y")
+    month_name = f"{RU_MONTHS_FULL[month]} {year}"
 
     calendar_text = await get_calendar_analysis(
         profile=profile,

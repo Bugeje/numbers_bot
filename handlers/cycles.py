@@ -2,12 +2,11 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from numerology.cycles import (
-    calculate_personal_year,
     generate_personal_year_table,
     calculate_pinnacles_with_periods,
     split_years_by_pinnacles,
 )
-from reports.cycles_report import generate_cycles_pdf
+from reports import generate_cycles_pdf
 from ui import build_after_analysis_keyboard
 from utils import run_blocking
 
