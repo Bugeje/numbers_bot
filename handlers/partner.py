@@ -3,9 +3,9 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from numerology import calculate_core_profile
 from ai import get_compatibility_interpretation
-from ui import build_year_keyboard, build_after_analysis_keyboard
+from ui import build_after_analysis_keyboard
 from reports import generate_partner_pdf
-from utils import run_blocking
+from utils import run_blocking, parse_and_normalize
 import tempfile
 
 from .states import State
@@ -22,8 +22,20 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
         return
     
     context.user_data["partner_name"] = update.message.text.strip()
-    await update.message.reply_text("📅 Выберите дату рождения партнёра:", reply_markup=build_year_keyboard())
+    await update.message.reply_text("📅 Введите дату рождения партнёра в формате ДД.ММ.ГГГГ (например 24.02.1993).")
+
     return State.ASK_PARTNER_BIRTHDATE
+
+
+async def receive_partner_birthdate_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        date_str = (update.message.text or "").strip()
+        normalized = parse_and_normalize(date_str)
+        context.user_data["partner_birthdate"] = normalized
+        return await generate_compatibility(update, context)
+    except Exception as e:
+        await update.message.reply_text(f"❌ {e}\nПопробуйте ещё раз. Пример: 24.02.1993")
+        return State.ASK_PARTNER_BIRTHDATE
 
 
 async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -68,6 +80,7 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
         )
 
         return ConversationHandler.END
+    
 
     except Exception as e:
         await update.effective_message.reply_text(f"❌ Ошибка: {e}")
