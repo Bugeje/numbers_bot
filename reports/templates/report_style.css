@@ -191,6 +191,7 @@ h1 {
 .dot-birthday     { background-color: #2ecc71; }
 
 /* Подсветка ячеек календаря по совпадениям с ядром */
+.calendar-cell.match-life_path,
 .calendar-cell.match-life {
   background-color: #e74c3c;
   color: white;
