@@ -3,5 +3,6 @@
   "git.fetchOnFocus": true,
   "git.confirmSync": false,
   "git.allowForcePush": false,
-  "git.pruneOnFetch": true
+  "git.pruneOnFetch": true,
+  "python.defaultInterpreterPath": ".venv/bin/python"  
 }
