@@ -14,7 +14,7 @@ from handlers import (
     receive_birthdate_text,
     show_extended_only_profile,
     send_bridges_pdf,
-    send_core_pdf,
+    core_profile_ai_and_pdf,
     save_name_and_ask_birthdate,
     request_partner_name,
     save_partner_name_and_ask_birthdate,
@@ -48,7 +48,7 @@ def main():
             ],
             State.EXTENDED_ANALYSIS: [
                 MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name),
-                MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf),
+                MessageHandler(filters.Regex("^(📄 Ядро личности)$"), core_profile_ai_and_pdf),
                 MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile),
                 MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf),
                 MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile),
@@ -70,7 +70,7 @@ def main():
     app.add_handler(days_conversation_handler)
 
     app.add_handler(MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name))
-    app.add_handler(MessageHandler(filters.Regex("^(📄 Ядро личности)$"), send_core_pdf))
+    app.add_handler(MessageHandler(filters.Regex("^(📄 Ядро личности)$"), core_profile_ai_and_pdf))
     app.add_handler(MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile))
     app.add_handler(MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf))
     app.add_handler(MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile))

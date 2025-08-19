@@ -1,5 +1,5 @@
 from .base import start, save_name_and_ask_birthdate, receive_birthdate_text
-from .core_profile import show_core_profile, send_core_pdf
+from .core_profile import show_core_profile, core_profile_ai_and_pdf
 from .extended import show_extended_only_profile
 from .bridges import send_bridges_pdf
 from .cycles import show_cycles_profile
