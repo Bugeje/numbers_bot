@@ -50,4 +50,4 @@ async def ask_openrouter(system_prompt: str, user_prompt: str, *,
                 except Exception:
                     reason = "HTTP error"
                 return f"❌ Ошибка {status}: {reason}"
-            return f"[Сетевая ошибка AI: {e}]"
+            return f"❌ Сетевая ошибка: {e}"

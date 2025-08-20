@@ -5,7 +5,7 @@ from .dateparse import (
     parse_month_year
 )
 from .i18n import RU_MONTHS_FULL
-from .messages import M
+from .messages import M, BTN
 from .progress import (
     PRESETS, 
     Progress, 

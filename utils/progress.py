@@ -3,7 +3,7 @@ import asyncio
 from typing import Iterable, Optional
 from telegram.constants import ChatAction
 from telegram import Update, Message, Chat
-from .messages import M  # <-- единый источник текстов
+from .messages import M
 
 
 PRESETS = {

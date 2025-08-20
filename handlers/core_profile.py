@@ -82,7 +82,7 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
     profile = context.user_data.get("core_profile")
 
     if not (name and birthdate and profile):
-        await update.effective_message.reply_text("Сначала рассчитаем ядро личности. Введите дату рождения.")
+        await update.effective_message.reply_text(f"{M.HINTS.CALC_CORE_FIRST}\n\n{M.HINTS.ASK_BIRTHDATE}")
         return State.ASK_BIRTHDATE
 
     await action_typing(update.effective_chat)
@@ -91,7 +91,7 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         analysis = await get_ai_analysis(profile)
-        if analysis.startswith("❌") or analysis.startswith("[Сетевая ошибка"):
+        if analysis.startswith("❌"):
             analysis = M.ERRORS.AI_GENERIC
     except Exception:
         analysis = M.ERRORS.AI_GENERIC
@@ -119,13 +119,12 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
             await update.effective_message.reply_document(
                 document=pdf_file,
                 filename="core_profile_report.pdf",
-                caption="📄 Ваш отчёт о ядре личности"
+                caption=M.CAPTION.CORE
             )
 
         await progress.finish()
     except Exception as e:
         await progress.fail(M.ERRORS.PDF_FAIL)
-        await update.effective_message.reply_text(f"Не удалось сформировать PDF: {e}")
 
     await update.effective_message.reply_text(
         M.HINTS.NEXT_STEP,

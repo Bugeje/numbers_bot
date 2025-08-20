@@ -9,6 +9,7 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 from settings import settings
 
+from utils import BTN
 from handlers import (
     start,
     receive_birthdate_text,
@@ -26,6 +27,7 @@ from handlers import (
 )
 
 import logging
+import re
 
 
 def main():
@@ -37,7 +39,7 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler("start", start),
-            MessageHandler(filters.Regex("^(🔁 Старт)$"), start)
+            MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)
         ],
         states={
             State.ASK_NAME: [
@@ -47,12 +49,12 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_birthdate_text)
             ],
             State.EXTENDED_ANALYSIS: [
-                MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name),
-                MessageHandler(filters.Regex("^(📄 Ядро личности)$"), core_profile_ai_and_pdf),
-                MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile),
-                MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf),
-                MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile),
-                MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf)
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.PARTNER)}$"), request_partner_name),
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.CORE)}$"), core_profile_ai_and_pdf),
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.EXTENDED)}$"), show_extended_only_profile),
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.BRIDGES)}$"), send_bridges_pdf),
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.CYCLES)}$"), show_cycles_profile),
+                MessageHandler(filters.Regex(f"^{re.escape(BTN.MONTHS)}$"), send_months_pdf)
             ],
             State.ASK_PARTNER_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate)
@@ -61,7 +63,7 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_partner_birthdate_text)
             ]
         },
-        fallbacks=[MessageHandler(filters.Regex("^🔁 Старт$"), start)]
+        fallbacks=[MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)]
     )
 
 
@@ -69,15 +71,15 @@ def main():
 
     app.add_handler(days_conversation_handler)
 
-    app.add_handler(MessageHandler(filters.Regex("^(💞 Совместимость партнёров)$"), request_partner_name))
-    app.add_handler(MessageHandler(filters.Regex("^(📄 Ядро личности)$"), core_profile_ai_and_pdf))
-    app.add_handler(MessageHandler(filters.Regex("^(🧩 Расширенные числа)$"), show_extended_only_profile))
-    app.add_handler(MessageHandler(filters.Regex("^(🪄 Мосты)$"), send_bridges_pdf))
-    app.add_handler(MessageHandler(filters.Regex("^(🌀 Циклы и годы)$"), show_cycles_profile))
-    app.add_handler(MessageHandler(filters.Regex("^(📆 Анализ месяцев)$"), send_months_pdf))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.PARTNER)}$"), request_partner_name))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.CORE)}$"), core_profile_ai_and_pdf))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.EXTENDED)}$"), show_extended_only_profile))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.BRIDGES)}$"), send_bridges_pdf))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.CYCLES)}$"), show_cycles_profile))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.MONTHS)}$"), send_months_pdf))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate))  
-    app.add_handler(MessageHandler(filters.Regex("^🔁 Старт$"), start))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start))
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
