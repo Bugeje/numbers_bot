@@ -2,8 +2,8 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from numerology.cycles import (
-    generate_personal_year_table,
     calculate_pinnacles_with_periods,
+    generate_personal_year_table,
     split_years_by_pinnacles,
 )
 from reports import generate_cycles_pdf
@@ -26,12 +26,7 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # Генерация PDF
         pdf_path = await run_blocking(
-            generate_cycles_pdf, 
-            name, 
-            birthdate, 
-            personal_years, 
-            pinnacles, 
-            personal_year_blocks
+            generate_cycles_pdf, name, birthdate, personal_years, pinnacles, personal_year_blocks
         )
 
         with open(pdf_path, "rb") as f:
@@ -39,8 +34,7 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # Меню выбора следующего действия
         await update.message.reply_text(
-            "Выберите следующий шаг:",
-            reply_markup=build_after_analysis_keyboard()
+            "Выберите следующий шаг:", reply_markup=build_after_analysis_keyboard()
         )
 
         return ConversationHandler.END

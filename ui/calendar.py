@@ -1,10 +1,9 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from calendar import monthrange
 
-MONTHS = [
-    "Янв", "Фев", "Мар", "Апр", "Май", "Июн",
-    "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"
-]
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"]
+
 
 def build_year_keyboard(start=1950, end=2025):
     keyboard = []
@@ -18,16 +17,18 @@ def build_year_keyboard(start=1950, end=2025):
         keyboard.append(row)
     return InlineKeyboardMarkup(keyboard)
 
+
 def build_month_keyboard(year: int):
     keyboard = []
     for i in range(0, 12, 3):
         row = [
-            InlineKeyboardButton(MONTHS[i+j], callback_data=f"cal_month_{year}_{i+j+1}")
+            InlineKeyboardButton(MONTHS[i + j], callback_data=f"cal_month_{year}_{i+j+1}")
             for j in range(3)
         ]
         keyboard.append(row)
     keyboard.append([InlineKeyboardButton("⬅ Назад", callback_data="cal_back_year")])
     return InlineKeyboardMarkup(keyboard)
+
 
 def build_day_keyboard(year: int, month: int):
     _, days_in_month = monthrange(year, month)

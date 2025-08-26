@@ -1,24 +1,15 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    filters
-)
-from numerology.cycles import generate_calendar_matrix, get_personal_month
-from .base import start
-from ui import (
-    build_after_analysis_keyboard,
-    SELECT_MONTH,
-    ASK_DAYS_MONTHYEAR_PROMPT
-)
-from reports import generate_pdf
-from utils import run_blocking, parse_month_year, RU_MONTHS_FULL
-
 import tempfile
 
-from ai import get_calendar_analysis, get_active_components
-from reports import mark_calendar_cells
+from telegram import Update
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
+
+from ai import get_active_components, get_calendar_analysis
+from numerology.cycles import generate_calendar_matrix, get_personal_month
+from reports import generate_pdf, mark_calendar_cells
+from ui import ASK_DAYS_MONTHYEAR_PROMPT, SELECT_MONTH, build_after_analysis_keyboard
+from utils import RU_MONTHS_FULL, parse_month_year, run_blocking
+
+from .base import start
 
 
 async def ask_days_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -39,7 +30,9 @@ async def receive_days_monthyear_text(update: Update, context: ContextTypes.DEFA
         context.user_data["days_year"] = year
         return await send_days_pdf(update, context)
     except Exception as e:
-        await update.message.reply_text(f"❌ {e}\n{ASK_DAYS_MONTHYEAR_PROMPT}", parse_mode="Markdown")
+        await update.message.reply_text(
+            f"❌ {e}\n{ASK_DAYS_MONTHYEAR_PROMPT}", parse_mode="Markdown"
+        )
         return SELECT_MONTH
 
 
@@ -83,7 +76,7 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         single_components=single_components,
         gradients=gradient_descriptions,
         fusion_groups=fusion_groups,
-        personal_month=personal_month
+        personal_month=personal_month,
     )
 
     emoji_to_html = {
@@ -97,7 +90,6 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for emoji, html in emoji_to_html.items():
         calendar_text = calendar_text.replace(emoji, html)
 
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         await run_blocking(
             generate_pdf,
@@ -108,13 +100,13 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             personal_calendar=calendar,
             calendar_month=str(month),
             calendar_year=str(year),
-            calendar_text=calendar_text
+            calendar_text=calendar_text,
         )
-        await update.message.reply_document(document=open(tmp.name, "rb"), filename="Календарь_дней.pdf")
+        with open(tmp.name, "rb") as pdf_file:
+            await update.message.reply_document(document=pdf_file, filename="Календарь_дней.pdf")
 
     await update.message.reply_text(
-        "Выберите следующий шаг:",
-        reply_markup=build_after_analysis_keyboard()
+        "Выберите следующий шаг:", reply_markup=build_after_analysis_keyboard()
     )
 
     return ConversationHandler.END

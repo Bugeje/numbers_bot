@@ -1,6 +1,7 @@
 # utils/validators.py
 import re
 
+
 def normalize_name(raw: str) -> str:
     """
     Нормализует и валидирует ФИО:
@@ -15,16 +16,16 @@ def normalize_name(raw: str) -> str:
         raise ValueError("Имя пустое. Введите, например: Анна")
 
     # унификация разделителей/пробелов/дефисов
-    s = s.replace("\u00A0", " ")                  # NBSP -> пробел
-    s = s.replace(",", " ")                       # запятые -> пробел
-    s = s.replace("–", "-").replace("—", "-")     # длинные дефисы -> '-'
-    s = re.sub(r"\s+", " ", s)                    # схлопнуть пробелы
+    s = s.replace("\u00a0", " ")  # NBSP -> пробел
+    s = s.replace(",", " ")  # запятые -> пробел
+    s = s.replace("–", "-").replace("—", "-")  # длинные дефисы -> '-'
+    s = re.sub(r"\s+", " ", s)  # схлопнуть пробелы
 
     if len(s) < 2 or len(s) > 80:
         raise ValueError("Длина имени должна быть от 2 до 80 символов.")
 
     # Кириллица: базовый и дополнительный блоки Unicode U+0400–U+04FF
-    NAME_TOKEN = "[\u0400-\u04FF]+(?:-[\u0400-\u04FF]+)*"
+    NAME_TOKEN = "[\u0400-\u04ff]+(?:-[\u0400-\u04ff]+)*"
     pattern = re.compile(f"^(?:{NAME_TOKEN})(?:\\s+{NAME_TOKEN}){{0,10}}$")
 
     if not pattern.fullmatch(s):

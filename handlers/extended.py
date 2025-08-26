@@ -1,20 +1,14 @@
 # handlers/extended.py
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler
 import tempfile
 
-from numerology.extended import calculate_extended_profile
+from telegram import Update
+from telegram.ext import ContextTypes, ConversationHandler
+
 from ai import get_extended_analysis
+from numerology.extended import calculate_extended_profile
 from reports import generate_extended_pdf
 from ui import build_after_analysis_keyboard
-from .states import State
-from utils import (
-    M,
-    Progress, 
-    PRESETS, 
-    action_typing, action_upload,
-    run_blocking
-)
+from utils import PRESETS, M, Progress, action_typing, action_upload, run_blocking
 
 
 async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +50,7 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
             birthdate=birthdate,
             extended=extended,
             analysis_ext=analysis_ext,
-            output_path=output_path
+            output_path=output_path,
         )
 
         await progress.set(M.PROGRESS.SENDING_ONE)
@@ -66,17 +60,14 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
             await update.message.reply_document(
                 document=pdf_file,
                 filename="extended_profile_report.pdf",
-                caption=M.CAPTION.EXTENDED
+                caption=M.CAPTION.EXTENDED,
             )
 
         await progress.finish()  # ✅ Отчёт готов! (+ автоудаление индикатора)
-    except Exception as e:
+    except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
     # --- финальное сообщение в едином стиле ---
-    await update.message.reply_text(
-        M.HINTS.NEXT_STEP,
-        reply_markup=build_after_analysis_keyboard()
-    )
+    await update.message.reply_text(M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
 
     return ConversationHandler.END

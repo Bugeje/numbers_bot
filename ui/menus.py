@@ -1,5 +1,7 @@
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import KeyboardButton, ReplyKeyboardMarkup
+
 from utils import BTN
+
 
 def build_after_analysis_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
@@ -10,5 +12,5 @@ def build_after_analysis_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(BTN.CALENDAR_DAYS)],
             [KeyboardButton(BTN.RESTART)],
         ],
-        resize_keyboard=True
+        resize_keyboard=True,
     )

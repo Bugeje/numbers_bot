@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from ui import build_year_keyboard
@@ -27,9 +27,7 @@ async def ask_month(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["selected_year"] = selected_year
 
-    keyboard = [
-        [InlineKeyboardButton(str(i + 1), callback_data=str(i + 1))] for i in range(12)
-    ]
+    keyboard = [[InlineKeyboardButton(str(i + 1), callback_data=str(i + 1))] for i in range(12)]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("📅 Теперь выберите месяц:", reply_markup=reply_markup)
     return SELECT_MONTH

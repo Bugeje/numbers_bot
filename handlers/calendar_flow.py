@@ -1,16 +1,18 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from ui import (
-    build_year_keyboard,
-    build_month_keyboard,
-    build_day_keyboard,
-    format_date,
-    MONTHS
-)
+
 from handlers.core_profile import show_core_profile
 from handlers.partner import generate_compatibility
+from ui import (
+    MONTHS,
+    build_day_keyboard,
+    build_month_keyboard,
+    build_year_keyboard,
+    format_date,
+)
 
 from .states import State
+
 
 async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -20,7 +22,9 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
     if data.startswith("cal_year_"):
         year = int(data.split("_")[2])
         context.user_data["year"] = year
-        await query.edit_message_text(f"📅 Год: {year}\nТеперь выберите месяц:", reply_markup=build_month_keyboard(year))
+        await query.edit_message_text(
+            f"📅 Год: {year}\nТеперь выберите месяц:", reply_markup=build_month_keyboard(year)
+        )
         return State.ASK_BIRTHDATE
 
     elif data.startswith("cal_month_"):
@@ -29,7 +33,10 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
         month = int(month)
         context.user_data["year"] = year
         context.user_data["month"] = month
-        await query.edit_message_text(f"📅 {MONTHS[month-1]} {year}\nВыберите день:", reply_markup=build_day_keyboard(year, month))
+        await query.edit_message_text(
+            f"📅 {MONTHS[month-1]} {year}\nВыберите день:",
+            reply_markup=build_day_keyboard(year, month),
+        )
         return State.ASK_BIRTHDATE
 
     elif data.startswith("cal_day_"):
@@ -52,5 +59,7 @@ async def handle_calendar_selection(update: Update, context: ContextTypes.DEFAUL
 
     elif data.startswith("cal_back_month_"):
         year = int(data.split("_")[-1])
-        await query.edit_message_text(f"📅 Год: {year}\nВыберите месяц:", reply_markup=build_month_keyboard(year))
+        await query.edit_message_text(
+            f"📅 Год: {year}\nВыберите месяц:", reply_markup=build_month_keyboard(year)
+        )
         return State.ASK_BIRTHDATE

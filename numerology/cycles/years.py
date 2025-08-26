@@ -1,22 +1,27 @@
 from datetime import datetime
-from numerology.utils import reduce_number, extract_base
+
+from numerology.utils import extract_base, reduce_number
+
 
 def digit_sum(n: int) -> int:
     return sum(int(d) for d in str(n))
 
+
 def parse_components(birthdate: str) -> tuple[int, int, int]:
     d, m, y = birthdate.strip().split(".")
     return int(d), int(m), int(y)
+
 
 def calculate_personal_year(birthdate: str, target_year: int = None) -> str:
     if target_year is None:
         target_year = datetime.today().year
     day, month, _ = parse_components(birthdate)
     return reduce_number(
-        extract_base(reduce_number(day)) +
-        extract_base(reduce_number(month)) +
-        extract_base(reduce_number(digit_sum(target_year)))
+        extract_base(reduce_number(day))
+        + extract_base(reduce_number(month))
+        + extract_base(reduce_number(digit_sum(target_year)))
     )
+
 
 def generate_personal_year_table(birthdate: str) -> dict:
     day, month, year = parse_components(birthdate)
@@ -26,6 +31,7 @@ def generate_personal_year_table(birthdate: str) -> dict:
         y: reduce_number(red_day + red_month + extract_base(reduce_number(digit_sum(y))))
         for y in range(year, year + 100)
     }
+
 
 def calculate_pinnacles_with_periods(birthdate: str, life_path_str: str) -> dict:
     day, month, year = parse_components(birthdate)
@@ -46,6 +52,7 @@ def calculate_pinnacles_with_periods(birthdate: str, life_path_str: str) -> dict
         f"Вершина 3 ({end1+10}–{end1+18})": p3,
         f"Вершина 4 ({end1+19}–{year+100})": p4,
     }
+
 
 def split_years_by_pinnacles(birthdate: str) -> list[dict]:
     day, month, year = parse_components(birthdate)

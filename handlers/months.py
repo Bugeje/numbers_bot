@@ -1,11 +1,13 @@
+import tempfile
+
 from telegram import Update
 from telegram.ext import ContextTypes
-from numerology.cycles import generate_personal_month_cycle_table, MONTH_NAMES
+
+from numerology.cycles import MONTH_NAMES, generate_personal_month_cycle_table
 from reports import create_months_report_pdf
 from ui import build_after_analysis_keyboard
 from utils import run_blocking
 
-import tempfile
 
 async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = context.user_data.get("name")
@@ -17,26 +19,16 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Получаем полную таблицу месяцев (1–9)
     raw_month_cycles = generate_personal_month_cycle_table()
-    month_cycles = {
-        str(k): [str(v[m]) for m in MONTH_NAMES] for k, v in raw_month_cycles.items()
-    }
+    month_cycles = {str(k): [str(v[m]) for m in MONTH_NAMES] for k, v in raw_month_cycles.items()}
 
     # Генерация PDF
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        await run_blocking(
-            create_months_report_pdf,
-            name, 
-            birthdate, 
-            month_cycles, 
-            tmp.name
-        )
+        await run_blocking(create_months_report_pdf, name, birthdate, month_cycles, tmp.name)
 
         await update.message.reply_document(
-            document=open(tmp.name, "rb"),
-            filename="Анализ_месяцев.pdf"
+            document=open(tmp.name, "rb"), filename="Анализ_месяцев.pdf"
         )
 
     await update.message.reply_text(
-        "Выберите следующий шаг:",
-        reply_markup=build_after_analysis_keyboard()
+        "Выберите следующий шаг:", reply_markup=build_after_analysis_keyboard()
     )

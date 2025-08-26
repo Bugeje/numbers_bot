@@ -1,9 +1,12 @@
 import os
+
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
+from weasyprint import CSS, HTML
+
 from numerology.extended.compatibility import compare_core_profiles, score_compatibility
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
+
 
 def generate_partner_pdf(
     name_a: str,
@@ -13,7 +16,7 @@ def generate_partner_pdf(
     birthdate_b: str,
     profile_b: dict,
     interpretation: str,
-    output_path: str
+    output_path: str,
 ):
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("partner_template.html")
@@ -26,7 +29,7 @@ def generate_partner_pdf(
         "birthday": "День рождения",
         "expression": "Выражение",
         "soul": "Душа",
-        "personality": "Личность"
+        "personality": "Личность",
     }
 
     profile_a_named = {labels[k]: v for k, v in profile_a.items() if k in labels}
@@ -41,7 +44,7 @@ def generate_partner_pdf(
         profile_b=profile_b_named,
         comparison_table=comparison_table,
         score=score,
-        interpretation=interpretation.strip()
+        interpretation=interpretation.strip(),
     )
 
     css_path = os.path.join(TEMPLATE_DIR, "report_style.css")

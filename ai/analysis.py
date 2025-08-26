@@ -1,12 +1,14 @@
+from settings import settings
+
 from .engine import ask_openrouter
 from .prompts import (
-    profile_prompt, 
-    extended_prompt, 
-    bridges_prompt, 
-    compatibility_prompt, 
-    days_prompt)
+    bridges_prompt,
+    compatibility_prompt,
+    days_prompt,
+    extended_prompt,
+    profile_prompt,
+)
 from .system_prompts import SYSTEM_PROMPTS
-from settings import settings
 
 
 async def get_ai_analysis(core_profile: dict) -> str:
@@ -14,7 +16,7 @@ async def get_ai_analysis(core_profile: dict) -> str:
         SYSTEM_PROMPTS["profile"],
         profile_prompt(core_profile),
         temperature=settings.AI_TEMPERATURE,
-        max_tokens=settings.AI_MAX_TOKENS
+        max_tokens=settings.AI_MAX_TOKENS,
     )
 
 
@@ -23,7 +25,7 @@ async def get_extended_analysis(extended_profile: dict) -> str:
         SYSTEM_PROMPTS["extended"],
         extended_prompt(extended_profile),
         temperature=settings.AI_TEMPERATURE,
-        max_tokens=settings.AI_MAX_TOKENS
+        max_tokens=settings.AI_MAX_TOKENS,
     )
 
 
@@ -32,7 +34,7 @@ async def get_bridges_analysis(bridges: dict) -> str:
         SYSTEM_PROMPTS["bridges"],
         bridges_prompt(bridges),
         temperature=settings.AI_TEMPERATURE,
-        max_tokens=settings.AI_MAX_TOKENS
+        max_tokens=settings.AI_MAX_TOKENS,
     )
 
 
@@ -41,7 +43,7 @@ async def get_compatibility_interpretation(profile_a: dict, profile_b: dict) -> 
         SYSTEM_PROMPTS["compatibility"],
         compatibility_prompt(profile_a, profile_b),
         temperature=settings.AI_TEMPERATURE,
-        max_tokens=settings.AI_MAX_TOKENS
+        max_tokens=settings.AI_MAX_TOKENS,
     )
 
 
@@ -61,6 +63,7 @@ def get_active_components(matches_by_day: dict) -> tuple[list[str], list[str], l
 
     return sorted(single_components), sorted(gradients), sorted(fusion_groups)
 
+
 async def get_calendar_analysis(
     profile: dict,
     month_name: str,
@@ -68,9 +71,8 @@ async def get_calendar_analysis(
     single_components: list[str],
     gradients: list[str],
     fusion_groups: list[str],
-    personal_month: int = None
+    personal_month: int = None,
 ) -> str:
-    from .prompts import days_prompt
 
     return await ask_openrouter(
         SYSTEM_PROMPTS["days"],
@@ -79,8 +81,8 @@ async def get_calendar_analysis(
             personal_month=personal_month,
             single_components=single_components,
             gradients=gradients,
-            fusion_groups=fusion_groups
+            fusion_groups=fusion_groups,
         ),
         temperature=settings.AI_TEMPERATURE,
-        max_tokens=settings.AI_MAX_TOKENS
+        max_tokens=settings.AI_MAX_TOKENS,
     )

@@ -1,9 +1,11 @@
-import os
 import datetime
+import os
+
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
-from numerology.utils import extract_base
+from weasyprint import CSS, HTML
+
 from numerology.cycles import MONTH_NAMES
+from numerology.utils import extract_base
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
@@ -12,15 +14,20 @@ LEGEND_COLORS = {
     "match-expression": "#3498db",
     "match-soul": "#9b59b6",
     "match-personality": "#f39c12",
-    "match-birthday": "#2ecc71"
+    "match-birthday": "#2ecc71",
 }
+
 
 def build_segmented_gradient(colors: list[str]) -> str:
     if len(colors) == 1:
         return f"background: {colors[0]}; color: white;"
     step = 100 / len(colors)
-    segments = [f"{color} {round(i*step,2)}%, {color} {round((i+1)*step,2)}%" for i, color in enumerate(colors)]
+    segments = [
+        f"{color} {round(i*step,2)}%, {color} {round((i+1)*step,2)}%"
+        for i, color in enumerate(colors)
+    ]
     return f"background: linear-gradient(90deg, {', '.join(segments)}); color: white;"
+
 
 def mark_calendar_cells(personal_calendar, core_profile):
     highlights = {
@@ -28,7 +35,7 @@ def mark_calendar_cells(personal_calendar, core_profile):
         "match-expression": extract_base(core_profile["expression"]),
         "match-soul": extract_base(core_profile["soul"]),
         "match-personality": extract_base(core_profile["personality"]),
-        "match-birthday": extract_base(core_profile["birthday"])
+        "match-birthday": extract_base(core_profile["birthday"]),
     }
 
     matches_by_day = {}
@@ -53,6 +60,7 @@ def mark_calendar_cells(personal_calendar, core_profile):
                 cell["css_class"] = "calendar-cell"
     return personal_calendar, matches_by_day
 
+
 def generate_pdf(
     name,
     birthdate,
@@ -61,7 +69,7 @@ def generate_pdf(
     personal_calendar,
     calendar_month,
     calendar_year,
-    calendar_text=""
+    calendar_text="",
 ):
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("calendar_template.html")
@@ -80,7 +88,7 @@ def generate_pdf(
         calendar_year=calendar_year,
         calendar_month_name=calendar_month_name,
         calendar_text=calendar_text,
-        date=datetime.date.today().strftime("%d.%m.%Y")
+        date=datetime.date.today().strftime("%d.%m.%Y"),
     )
 
     css_path = os.path.join(TEMPLATE_DIR, "report_style.css")

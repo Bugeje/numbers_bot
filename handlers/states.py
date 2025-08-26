@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+
 class State(IntEnum):
     ASK_NAME = 0
     ASK_BIRTHDATE = 1

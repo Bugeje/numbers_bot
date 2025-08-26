@@ -1,4 +1,5 @@
 from numerology import extract_base
+
 from .bridges import calculate_bridge
 
 
@@ -10,7 +11,7 @@ def compare_core_profiles(profile_a: dict, profile_b: dict) -> list[dict]:
         "birthday": "День рождения",
         "expression": "Выражение",
         "soul": "Душа",
-        "personality": "Личность"
+        "personality": "Личность",
     }
 
     table = []
@@ -22,14 +23,16 @@ def compare_core_profiles(profile_a: dict, profile_b: dict) -> list[dict]:
         match = base_a == base_b
         bridge = calculate_bridge(val_a, val_b)
 
-        table.append({
-            "component": comp,
-            "label": labels[comp],
-            "value_a": val_a,
-            "value_b": val_b,
-            "match": match,
-            "bridge": bridge
-        })
+        table.append(
+            {
+                "component": comp,
+                "label": labels[comp],
+                "value_a": val_a,
+                "value_b": val_b,
+                "match": match,
+                "bridge": bridge,
+            }
+        )
     return table
 
 
@@ -45,9 +48,13 @@ def score_compatibility(comparison_table: list[dict]) -> int:
 
 
 def format_comparison_text(table: list[dict]) -> str:
-    
-    lines = ["| Компонент | Партнёр A | Партнёр B | Совпадение | Мост |",
-             "|-----------|-----------|-----------|------------|------|"]
+
+    lines = [
+        "| Компонент | Партнёр A | Партнёр B | Совпадение | Мост |",
+        "|-----------|-----------|-----------|------------|------|",
+    ]
     for row in table:
-        lines.append(f"| {row['label']} | {row['value_a']} | {row['value_b']} | {'✅' if row['match'] else '❌'} | {row['bridge']} |")
+        lines.append(
+            f"| {row['label']} | {row['value_a']} | {row['value_b']} | {'✅' if row['match'] else '❌'} | {row['bridge']} |"
+        )
     return "\n".join(lines)

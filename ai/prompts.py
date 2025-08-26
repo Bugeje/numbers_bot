@@ -42,7 +42,7 @@ def days_prompt(
     personal_month: int,
     single_components: list[str],
     gradients: list[str],
-    fusion_groups: list[str]
+    fusion_groups: list[str],
 ) -> str:
     legend = {
         "match-life_path": "🟥",
@@ -61,10 +61,7 @@ def days_prompt(
         if all(colors):
             fusion_blocks.append("".join(colors))
 
-    text = (
-        f"Анализируемый месяц: {month_name}\n"
-        f"Индивидуальный месяц: {personal_month}\n"
-    )
+    text = f"Анализируемый месяц: {month_name}\n" f"Индивидуальный месяц: {personal_month}\n"
 
     if basic_colors:
         text += f"\nЦветовые акценты месяца: {', '.join(basic_colors)}"

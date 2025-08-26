@@ -1,13 +1,16 @@
-from datetime import date
 from calendar import monthrange
-from numerology.utils import reduce_number, extract_base
+from datetime import date
+
 from numerology.cycles.years import calculate_personal_year
+from numerology.utils import extract_base, reduce_number
+
 
 def calculate_personal_day_base(birthdate: str, target_date: date) -> int:
     personal_year = extract_base(calculate_personal_year(birthdate, target_date.year))
     personal_month = extract_base(reduce_number(personal_year + target_date.month))
     calendar_day = extract_base(reduce_number(target_date.day))
     return extract_base(reduce_number(personal_month + calendar_day))
+
 
 def generate_calendar_matrix(birthdate: str, year: int, month: int) -> list[list[dict]]:
     _, last_day = monthrange(year, month)

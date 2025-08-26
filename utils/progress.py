@@ -1,17 +1,20 @@
 # utils/progress.py
 import asyncio
-from typing import Iterable, Optional
+from collections.abc import Iterable
+
+from telegram import Chat, Message, Update
 from telegram.constants import ChatAction
-from telegram import Update, Message, Chat
+
 from .messages import M
 
 # Одно сообщение на этап (без шкал)
 PRESETS = {
     "calc_core": [M.PROGRESS.CALC_LABEL],
-    "ai":        [M.PROGRESS.AI_LABEL],
-    "pdf":       [M.PROGRESS.PDF_ONE],
-    "sending":   [M.PROGRESS.SENDING_ONE],
+    "ai": [M.PROGRESS.AI_LABEL],
+    "pdf": [M.PROGRESS.PDF_ONE],
+    "sending": [M.PROGRESS.SENDING_ONE],
 }
+
 
 async def action_typing(chat: Chat) -> None:
     try:
@@ -19,11 +22,13 @@ async def action_typing(chat: Chat) -> None:
     except Exception:
         pass
 
+
 async def action_upload(chat: Chat) -> None:
     try:
         await chat.send_action(ChatAction.UPLOAD_DOCUMENT)
     except Exception:
         pass
+
 
 class Progress:
     def __init__(self, message: Message):
@@ -62,7 +67,9 @@ class Progress:
             await self.set(first)
         return await coro  # ждём без дополнительных правок сообщения
 
-    async def finish(self, text: str = M.PROGRESS.DONE, delete_after: Optional[float] = 1.2) -> None:
+    async def finish(
+        self, text: str = M.PROGRESS.DONE, delete_after: float | None = 1.2
+    ) -> None:
         try:
             await self.message.edit_text(text)
             if delete_after:

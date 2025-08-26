@@ -1,6 +1,8 @@
 # utils/async_tools.py
 import asyncio
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
+
 
 async def run_blocking(func: Callable[..., Any], *args, **kwargs) -> Any:
     # Выполнит func в отдельном потоке и вернёт результат,

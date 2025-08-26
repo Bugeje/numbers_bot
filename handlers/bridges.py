@@ -1,15 +1,17 @@
 # handlers/bridges.py
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler
 import tempfile
 
-from numerology.extended import calculate_bridges
+from telegram import Update
+from telegram.ext import ContextTypes, ConversationHandler
+
 from ai import get_bridges_analysis
+from numerology.extended import calculate_bridges
 from reports import generate_bridges_pdf
 from ui import build_after_analysis_keyboard
 from utils import run_blocking
 from utils.messages import M
-from utils.progress import Progress, PRESETS, action_typing, action_upload
+from utils.progress import PRESETS, Progress, action_typing, action_upload
+
 
 async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = context.user_data
@@ -31,9 +33,7 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bridges = calculate_bridges(core_profile)
             user_data["bridges"] = bridges
         except Exception:
-            await update.message.reply_text(
-                f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}"
-            )
+            await update.message.reply_text(f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}")
             return ConversationHandler.END
 
     # --- прогресс: ИИ-анализ ---
@@ -62,7 +62,7 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             birthdate=birthdate,
             bridges=bridges,
             analysis_bridges=analysis_bridges,
-            output_path=output_path
+            output_path=output_path,
         )
 
         await progress.set(M.PROGRESS.SENDING_ONE)
@@ -70,17 +70,12 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         with open(output_path, "rb") as pdf_file:
             await update.message.reply_document(
-                document=pdf_file,
-                filename="bridges_report.pdf",
-                caption=M.CAPTION.BRIDGES
+                document=pdf_file, filename="bridges_report.pdf", caption=M.CAPTION.BRIDGES
             )
 
         await progress.finish()  # ✅ + автоудаление индикатора
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    await update.message.reply_text(
-        M.HINTS.NEXT_STEP,
-        reply_markup=build_after_analysis_keyboard()
-    )
+    await update.message.reply_text(M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
     return ConversationHandler.END
