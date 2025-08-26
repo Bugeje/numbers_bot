@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     AI_TEMPERATURE: float = 0.7
     AI_MAX_TOKENS: int = 2048
     HTTP_TIMEOUT: float = 30.0
+    
+    # Performance settings for high concurrent usage
+    MAX_CONCURRENT_REQUESTS: int = 50  # Limit concurrent API requests
+    THREAD_POOL_SIZE: int = 20  # For CPU-intensive tasks
+    CONNECTION_POOL_SIZE: int = 100  # HTTP connection pool
 
     class Config:
         env_file = ".env"
