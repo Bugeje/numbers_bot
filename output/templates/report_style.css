@@ -237,3 +237,42 @@ h1 {
   color: #b8860b;
   font-weight: bold;
 }
+
+/* Стили для таблицы годового обзора месяцев */
+.months-year-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.months-year-table th,
+.months-year-table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.months-year-table th {
+  background-color: #eef3f9;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+}
+
+.months-year-table td:nth-child(2) {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* Подсветка строк месяцев с совпадениями */
+.months-year-table tr.highlight-month {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.months-year-table tr.highlight-month td {
+  color: #856404;
+}

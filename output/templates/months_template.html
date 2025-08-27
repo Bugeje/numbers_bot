@@ -37,5 +37,12 @@
   </div>
   {% endif %}
   
+  {% if ai_text and ai_text.strip() %}
+  <div class="block">
+    <h2>🤖 Годовой обзор по персональным месяцам</h2>
+    <div style="white-space: pre-line">{{ ai_text }}</div>
+  </div>
+  {% endif %}
+  
 </body>
 </html>

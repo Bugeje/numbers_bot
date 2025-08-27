@@ -1,14 +1,37 @@
+from datetime import datetime
 from config import settings
 
+from calc.cycles import get_personal_month
+from calc.math import extract_base
 from .engine import ask_openrouter
 from .prompts import (
     bridges_prompt,
     compatibility_prompt,
     days_prompt,
     extended_prompt,
+    months_year_prompt,
     profile_prompt,
 )
 from .system_prompts import SYSTEM_PROMPTS
+
+
+def _month_matches_core(profile: dict, personal_month: int) -> list[str]:
+    pm = int(extract_base(personal_month))
+    mapping = {
+        "match-life_path": extract_base(profile.get("life_path")),
+        "match-expression": extract_base(profile.get("expression")),
+        "match-soul": extract_base(profile.get("soul")),
+        "match-personality": extract_base(profile.get("personality")),
+        "match-birthday": extract_base(profile.get("birthday")),
+    }
+    matches = []
+    for label, val in mapping.items():
+        try:
+            if int(val) == pm:
+                matches.append(label)
+        except Exception:
+            pass
+    return matches
 
 
 async def get_ai_analysis(core_profile: dict) -> str:
@@ -83,6 +106,23 @@ async def get_calendar_analysis(
             gradients=gradients,
             fusion_groups=fusion_groups,
         ),
+        temperature=settings.ai.temperature,
+        max_tokens=settings.ai.max_tokens,
+    )
+
+
+async def get_months_year_analysis(profile: dict, birthdate: str, year: int | None = None) -> str:
+    if year is None:
+        year = datetime.today().year
+    months_map: dict[int,int] = {}
+    matches_map: dict[int,list[str]] = {}
+    for m in range(1, 13):
+        pm = get_personal_month(birthdate=birthdate, year=year, month=m)
+        months_map[m] = pm
+        matches_map[m] = _month_matches_core(profile, pm)
+    return await ask_openrouter(
+        SYSTEM_PROMPTS["months_year"],
+        months_year_prompt(year=year, months_map=months_map, matches_map=matches_map),
         temperature=settings.ai.temperature,
         max_tokens=settings.ai.max_tokens,
     )

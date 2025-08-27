@@ -5,4 +5,5 @@ from .analysis import (
     get_calendar_analysis,
     get_compatibility_interpretation,
     get_extended_analysis,
+    get_months_year_analysis,
 )

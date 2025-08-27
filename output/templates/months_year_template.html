@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+
+  <h1>📆 Годовой обзор персонального месячного календаря</h1>
+
+  <div class="block">
+    <span class="label">Имя:</span> {{ name }}<br>
+    <span class="label">Дата рождения:</span> {{ birthdate }}<br>
+    <span class="label">Персональный год:</span> {{ personal_year }}
+  </div>
+
+  <div class="block">
+    <span class="label">📅 Месячный календарь с совпадениями ядра личности:</span>
+    <table class="table months-year-table">
+      <thead>
+        <tr>
+          <th>Месяц</th>
+          <th>Персональное число</th>
+          <th>Совпадения с ядром</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for month in months %}
+          <tr{% if month.has_matches %} class="highlight-month"{% endif %}>
+            <td><strong>{{ month.name }}</strong></td>
+            <td>{{ month.value }}</td>
+            <td>
+              {% if month.matches %}
+                {{ month.matches | join(', ') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>    
+  </div>
+
+  <div class="block">
+    <span class="label">🧠 Годовой анализ:</span>
+    <div class="ai-block">{{ ai_analysis }}</div>
+  </div>
+  
+</body>
+</html>
