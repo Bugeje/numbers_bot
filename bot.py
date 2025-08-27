@@ -30,7 +30,7 @@ def main():
         )
         from telegram.request import HTTPXRequest
         
-        from handlers import (
+        from flows import (
             State,
             core_profile_ai_and_pdf,
             days_conversation_handler,
@@ -45,7 +45,7 @@ def main():
             show_extended_only_profile,
             start,
         )
-        from utils import BTN
+        from helpers import BTN
         
         # Создаем HTTP клиент
         request = HTTPXRequest(
