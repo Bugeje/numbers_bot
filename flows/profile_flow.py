@@ -12,6 +12,7 @@ from interface import build_after_analysis_keyboard
 from helpers import (
     PRESETS,
     M,
+    MessageManager,
     Progress,
     action_typing,
     action_upload,
@@ -66,11 +67,16 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     # --- показать краткий итог и клавиатуру следующего шага ---
+    msg_manager = MessageManager(context)
+    
+    # Отправляем краткий итог (не трекаем - это важная информация)
     await update.effective_message.reply_text(
         M.format_core_summary(name, birthdate, profile), parse_mode="Markdown"
     )
-    await update.effective_message.reply_text(
-        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    
+    # Отправляем навигационное сообщение (трекаем для удаления)
+    await msg_manager.send_and_track(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     # остаёмся в режиме ожидания кнопок (в т.ч. «Ядро личности» для ИИ+PDF)
@@ -79,6 +85,10 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ИИ-анализ и PDF — ТОЛЬКО по нажатию кнопки 'Ядро личности'."""
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     name = context.user_data.get("name")
     birthdate = context.user_data.get("birthdate")
     profile = context.user_data.get("core_profile")
@@ -128,7 +138,8 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    await update.effective_message.reply_text(
-        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (трекаем)
+    await msg_manager.send_and_track(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
     return State.EXTENDED_ANALYSIS

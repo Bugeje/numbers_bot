@@ -10,10 +10,14 @@ from output import generate_bridges_pdf
 from interface import build_after_analysis_keyboard
 from helpers import run_blocking
 from helpers.messages import M
-from helpers.progress import PRESETS, Progress, action_typing, action_upload
+from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 
 
 async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     user_data = context.user_data
     name = user_data.get("name")
     birthdate = user_data.get("birthdate")
@@ -70,12 +74,12 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         with open(output_path, "rb") as pdf_file:
             await update.message.reply_document(
-                document=pdf_file, filename="bridges_report.pdf", caption=M.CAPTION.BRIDGES
+                document=pdf_file, filename="Анализ_мостов.pdf", caption=M.CAPTION.BRIDGES
             )
 
         await progress.finish()  # ✅ + автоудаление индикатора
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    await update.message.reply_text(M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
+    await msg_manager.send_and_track(update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
     return ConversationHandler.END

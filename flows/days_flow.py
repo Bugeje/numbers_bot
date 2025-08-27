@@ -7,21 +7,29 @@ from intelligence import get_active_components, get_calendar_analysis
 from calc.cycles import generate_calendar_matrix, get_personal_month
 from output import generate_pdf, mark_calendar_cells
 from interface import ASK_DAYS_MONTHYEAR_PROMPT, SELECT_MONTH, build_after_analysis_keyboard
-from helpers import RU_MONTHS_FULL, parse_month_year, run_blocking
+from helpers import M, MessageManager, Progress, action_typing, action_upload, RU_MONTHS_FULL, parse_month_year, run_blocking
 
 from .base import start
 
 
 async def ask_days_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     # очистим хвосты
     for k in ("year", "month", "days_year", "days_month"):
         context.user_data.pop(k, None)
 
-    await update.message.reply_text(ASK_DAYS_MONTHYEAR_PROMPT, parse_mode="Markdown")
+    await msg_manager.send_and_track(update, ASK_DAYS_MONTHYEAR_PROMPT, parse_mode="Markdown")
     return SELECT_MONTH
 
 
 async def receive_days_monthyear_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем промпт о вводе месяца/года
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     try:
         month, year = parse_month_year(update.message.text)
         context.user_data["month"] = month
@@ -50,11 +58,14 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+    # --- прогресс: расчёты ---
+    await action_typing(update.effective_chat)
+    progress = await Progress.start(update, f"📅 Готовлю календарь дней на {RU_MONTHS_FULL[month]} {year}...")
+
     personal_month = get_personal_month(birthdate, year, month)
     context.user_data["personal_month"] = personal_month
 
     calendar = generate_calendar_matrix(birthdate, year=year, month=month)
-
     calendar, matches_by_day = mark_calendar_cells(calendar, profile)
     single_components, gradients, fusion_groups = get_active_components(matches_by_day)
 
@@ -69,15 +80,23 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     month_name = f"{RU_MONTHS_FULL[month]} {year}"
 
-    calendar_text = await get_calendar_analysis(
-        profile=profile,
-        month_name=month_name,
-        matches_by_day=matches_by_day,
-        single_components=single_components,
-        gradients=gradient_descriptions,
-        fusion_groups=fusion_groups,
-        personal_month=personal_month,
-    )
+    # --- прогресс: ИИ-анализ ---
+    await progress.set("🤖 Генерирую AI-анализ календаря...")
+
+    try:
+        calendar_text = await get_calendar_analysis(
+            profile=profile,
+            month_name=month_name,
+            matches_by_day=matches_by_day,
+            single_components=single_components,
+            gradients=gradient_descriptions,
+            fusion_groups=fusion_groups,
+            personal_month=personal_month,
+        )
+        if isinstance(calendar_text, str) and calendar_text.startswith("❌"):
+            calendar_text = M.ERRORS.AI_GENERIC
+    except Exception:
+        calendar_text = M.ERRORS.AI_GENERIC
 
     emoji_to_html = {
         "🟥": '<span style="display:inline-block; width:14px; height:14px; background-color:#e74c3c; border-radius:2px; margin:0 2px;"></span>',
@@ -90,23 +109,42 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for emoji, html in emoji_to_html.items():
         calendar_text = calendar_text.replace(emoji, html)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        await run_blocking(
-            generate_pdf,
-            name=name,
-            birthdate=birthdate,
-            profile=profile,
-            filename=tmp.name,
-            personal_calendar=calendar,
-            calendar_month=str(month),
-            calendar_year=str(year),
-            calendar_text=calendar_text,
-        )
-        with open(tmp.name, "rb") as pdf_file:
-            await update.message.reply_document(document=pdf_file, filename="Календарь_дней.pdf")
+    # --- прогресс: PDF ---
+    await progress.set(M.PROGRESS.PDF_ONE)
+    await action_upload(update.effective_chat)
 
-    await update.message.reply_text(
-        "Выберите следующий шаг:", reply_markup=build_after_analysis_keyboard()
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            await run_blocking(
+                generate_pdf,
+                name=name,
+                birthdate=birthdate,
+                profile=profile,
+                filename=tmp.name,
+                personal_calendar=calendar,
+                calendar_month=str(month),
+                calendar_year=str(year),
+                calendar_text=calendar_text,
+            )
+            
+            await progress.set(M.PROGRESS.SENDING_ONE)
+            await action_upload(update.effective_chat)
+            
+            with open(tmp.name, "rb") as pdf_file:
+                await update.message.reply_document(
+                    document=pdf_file, 
+                    filename="Календарь_дней.pdf",
+                    caption="📅 Ваш персональный календарь дней"
+                )
+
+        await progress.finish()
+    except Exception:
+        await progress.fail(M.ERRORS.PDF_FAIL)
+
+    # Отправляем новое навигационное сообщение (трекаем)
+    msg_manager = MessageManager(context)
+    await msg_manager.send_and_track(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     return ConversationHandler.END

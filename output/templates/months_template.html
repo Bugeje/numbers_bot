@@ -28,7 +28,7 @@
           <tr>
             <td><strong>{{ year }}</strong></td>
             {% for val in months %}
-              <td>{{ val }}</td>
+              <td{% if loop.index0 == current_month_index and year == current_personal_year %} class="current-month"{% endif %}>{{ val }}</td>
             {% endfor %}
           </tr>
         {% endfor %}

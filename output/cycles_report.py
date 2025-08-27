@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import CSS, HTML
@@ -16,13 +17,18 @@ def format_pinnacle_numbers(pinnacles):
 def build_pinnacle_columns(pinnacles, personal_year_blocks, birthdate):
     max_len = max(len(block) for block in personal_year_blocks)
     pinnacle_columns = []
+    current_year = datetime.now().year
 
     for header_value, block in zip(pinnacles.values(), personal_year_blocks, strict=False):
         rows = sorted(block.items())
         padded = [
-            (str(year), str(calculate_personal_year(birthdate, int(year)))) for year, _ in rows
+            {
+                "year": str(year),
+                "value": str(calculate_personal_year(birthdate, int(year))),
+                "is_current": int(year) == current_year
+            } for year, _ in rows
         ]
-        padded += [("", "")] * (max_len - len(rows))
+        padded += [{"year": "", "value": "", "is_current": False}] * (max_len - len(rows))
         pinnacle_columns.append({"header": str(header_value), "rows": padded})
 
     return pinnacle_columns

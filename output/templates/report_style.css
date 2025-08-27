@@ -111,6 +111,15 @@ h1 {
   color: #333;
 }
 
+/* Подсветка текущего месяца */
+.personal-months-table td.current-month {
+  background-color: #ffd700;
+  border: 2px solid #ff8c00;
+  font-weight: bold;
+  color: #b8860b;
+  box-shadow: 0 2px 4px rgba(255, 140, 0, 0.3);
+}
+
 .personal-calendar-table {
   width: 100%;
   border-collapse: collapse;
@@ -209,4 +218,22 @@ h1 {
 .calendar-cell.match-birthday {
   background-color: #2ecc71;
   color: black;
+}
+
+/* Подсветка текущего года */
+.pinnacle-cell.current-year {
+  background-color: #ffd700;
+  border: 2px solid #ff8c00;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(255, 140, 0, 0.3);
+}
+
+.pinnacle-cell.current-year .year {
+  color: #b8860b;
+  font-weight: bold;
+}
+
+.pinnacle-cell.current-year .value {
+  color: #b8860b;
+  font-weight: bold;
 }

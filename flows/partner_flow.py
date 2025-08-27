@@ -7,14 +7,18 @@ from intelligence import get_compatibility_interpretation
 from calc import calculate_core_profile
 from output import generate_partner_pdf
 from interface import build_after_analysis_keyboard
-from helpers import parse_and_normalize, run_blocking
+from helpers import M, MessageManager, Progress, action_typing, action_upload, parse_and_normalize, run_blocking
 
 from .states import State
 
 
 async def request_partner_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     context.user_data["selecting_partner"] = True
-    await update.message.reply_text("Введите имя и фамилию второго партнёра:")
+    await msg_manager.send_and_track(update, "Введите имя и фамилию второго партнёра:")
     return State.ASK_PARTNER_NAME
 
 
@@ -22,8 +26,13 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
     if not context.user_data.get("selecting_partner"):
         return
 
+    # Очищаем промпт о вводе имени
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+
     context.user_data["partner_name"] = update.message.text.strip()
-    await update.message.reply_text(
+    await msg_manager.send_and_track(
+        update,
         "📅 Введите дату рождения партнёра в формате ДД.ММ.ГГГГ (например 24.02.1993)."
     )
 
@@ -31,6 +40,10 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
 
 
 async def receive_partner_birthdate_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем промпт о вводе даты
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     try:
         date_str = (update.message.text or "").strip()
         normalized = parse_and_normalize(date_str)
@@ -59,34 +72,60 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
             )
             return ConversationHandler.END
 
+        # --- прогресс: расчёты ---
+        await action_typing(update.effective_chat)
+        progress = await Progress.start(update, "💞 Готовлю анализ совместимости...")
+
         profile_b = calculate_core_profile(name_b, birth_b)
-        await update.effective_message.reply_text(
-            "🔄 Получаю AI-анализ совместимости, подождите..."
-        )
+        
+        # --- прогресс: ИИ-анализ ---
+        await progress.set("🤖 Получаю AI-анализ совместимости...")
 
-        interpretation = await get_compatibility_interpretation(profile_a, profile_b)
+        try:
+            interpretation = await get_compatibility_interpretation(profile_a, profile_b)
+            if isinstance(interpretation, str) and interpretation.startswith("❌"):
+                interpretation = M.ERRORS.AI_GENERIC
+        except Exception:
+            interpretation = M.ERRORS.AI_GENERIC
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            await run_blocking(
-                generate_partner_pdf,
-                name_a,
-                birth_a,
-                profile_a,
-                name_b,
-                birth_b,
-                profile_b,
-                interpretation=interpretation,
-                output_path=tmp.name,
-            )
-            with open(tmp.name, "rb") as pdf_file:
-                await update.effective_message.reply_document(
-                    pdf_file, filename="Совместимость_партнёров.pdf"
+        # --- прогресс: PDF ---
+        await progress.set(M.PROGRESS.PDF_ONE)
+        await action_upload(update.effective_chat)
+
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                await run_blocking(
+                    generate_partner_pdf,
+                    name_a,
+                    birth_a,
+                    profile_a,
+                    name_b,
+                    birth_b,
+                    profile_b,
+                    interpretation=interpretation,
+                    output_path=tmp.name,
                 )
+                
+                await progress.set(M.PROGRESS.SENDING_ONE)
+                await action_upload(update.effective_chat)
+                
+                with open(tmp.name, "rb") as pdf_file:
+                    await update.effective_message.reply_document(
+                        pdf_file, 
+                        filename="Совместимость_партнёров.pdf",
+                        caption=M.CAPTION.PARTNER
+                    )
+
+            await progress.finish()
+        except Exception:
+            await progress.fail(M.ERRORS.PDF_FAIL)
 
         context.user_data.pop("selecting_partner", None)
 
-        await update.effective_message.reply_text(
-            "Выберите следующий шаг:", reply_markup=build_after_analysis_keyboard()
+        # Отправляем навигационное сообщение с трекингом для автоудаления
+        msg_manager = MessageManager(context)
+        await msg_manager.send_and_track(
+            update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
         )
 
         return ConversationHandler.END

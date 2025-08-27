@@ -16,6 +16,40 @@ PRESETS = {
 }
 
 
+class MessageManager:
+    """Manages auto-deletion of instruction and navigation messages."""
+    
+    def __init__(self, context):
+        self.context = context
+        if "auto_delete_messages" not in context.user_data:
+            context.user_data["auto_delete_messages"] = []
+    
+    def track_message(self, message: Message) -> None:
+        """Track a message for auto-deletion."""
+        self.context.user_data["auto_delete_messages"].append(message.message_id)
+    
+    async def cleanup_tracked_messages(self) -> None:
+        """Delete all tracked messages."""
+        message_ids = self.context.user_data.get("auto_delete_messages", [])
+        for msg_id in message_ids:
+            try:
+                await self.context.bot.delete_message(
+                    chat_id=self.context._chat_id, 
+                    message_id=msg_id
+                )
+            except Exception:
+                pass  # Message might already be deleted
+        
+        # Clear the tracking list
+        self.context.user_data["auto_delete_messages"] = []
+    
+    async def send_and_track(self, update: Update, text: str, **kwargs) -> Message:
+        """Send a message and automatically track it for deletion."""
+        msg = await update.effective_message.reply_text(text, **kwargs)
+        self.track_message(msg)
+        return msg
+
+
 async def action_typing(chat: Chat) -> None:
     try:
         await chat.send_action(ChatAction.TYPING)
@@ -68,8 +102,9 @@ class Progress:
         return await coro  # ждём без дополнительных правок сообщения
 
     async def finish(
-        self, text: str = M.PROGRESS.DONE, delete_after: float | None = 1.2
+        self, text: str = M.PROGRESS.DONE, delete_after: float | None = 2.0
     ) -> None:
+        """Finish progress with success message and auto-delete."""
         try:
             await self.message.edit_text(text)
             if delete_after:
@@ -78,8 +113,19 @@ class Progress:
         except Exception:
             pass
 
-    async def fail(self, text: str = M.PROGRESS.FAIL) -> None:
+    async def fail(self, text: str = M.PROGRESS.FAIL, delete_after: float | None = 3.0) -> None:
+        """Finish progress with error message and auto-delete."""
         try:
             await self.message.edit_text(text)
+            if delete_after:
+                await asyncio.sleep(delete_after)
+                await self.message.delete()
+        except Exception:
+            pass
+
+    async def cleanup(self) -> None:
+        """Immediately delete the progress message without showing completion."""
+        try:
+            await self.message.delete()
         except Exception:
             pass

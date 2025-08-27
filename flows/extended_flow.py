@@ -8,10 +8,14 @@ from intelligence import get_extended_analysis
 from calc.extended import calculate_extended_profile
 from output import generate_extended_pdf
 from interface import build_after_analysis_keyboard
-from helpers import PRESETS, M, Progress, action_typing, action_upload, run_blocking
+from helpers import PRESETS, M, MessageManager, Progress, action_typing, action_upload, run_blocking
 
 
 async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
     name = context.user_data.get("name")
     birthdate = context.user_data.get("birthdate")
     core_profile = context.user_data.get("core_profile")
@@ -68,6 +72,8 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         await progress.fail(M.ERRORS.PDF_FAIL)
 
     # --- финальное сообщение в едином стиле ---
-    await update.message.reply_text(M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
-
+    await msg_manager.send_and_track(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    )
+    
     return ConversationHandler.END

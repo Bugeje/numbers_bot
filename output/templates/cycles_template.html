@@ -29,9 +29,9 @@
             {% for col in pinnacle_columns %}
               <td>
                 {% if i < col.rows|length %}
-                  <div class="pinnacle-cell">
-                    <div class="year">{{ col.rows[i][0] }}</div>
-                    <div class="value">{{ col.rows[i][1] }}</div>
+                  <div class="pinnacle-cell{% if col.rows[i].is_current %} current-year{% endif %}">
+                    <div class="year">{{ col.rows[i].year }}</div>
+                    <div class="value">{{ col.rows[i].value }}</div>
                   </div>
                 {% else %}
                   &nbsp;
