@@ -3,9 +3,9 @@ import logging
 
 import httpx
 
-from settings import settings
+from config import settings
 
-API_URL = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
+API_URL = f"{settings.ai.openrouter_base_url}/chat/completions"
 MODEL = "openai/gpt-4o"
 DEBUG = False
 
@@ -23,15 +23,15 @@ async def ask_openrouter(
     max_tokens: int | None = None,
 ) -> str:
     """Ask OpenRouter API with proper error handling and retries."""
-    temperature = settings.AI_TEMPERATURE if temperature is None else temperature
-    max_tokens = settings.AI_MAX_TOKENS if max_tokens is None else max_tokens
+    temperature = settings.ai.temperature if temperature is None else temperature
+    max_tokens = settings.ai.max_tokens if max_tokens is None else max_tokens
 
-    if not settings.OPENROUTER_API_KEY:
+    if not settings.ai.openrouter_api_key:
         logger.error("Missing OpenRouter API key")
         return "❌ Ошибка: отсутствует API-ключ OpenRouter. Проверь .env."
 
     headers = {
-        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {settings.ai.openrouter_api_key}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -47,7 +47,7 @@ async def ask_openrouter(
     # Initialize client if needed
     global _client
     if _client is None:
-        _client = httpx.AsyncClient(timeout=httpx.Timeout(settings.HTTP_TIMEOUT))
+        _client = httpx.AsyncClient(timeout=httpx.Timeout(settings.http_timeout))
 
     delay = 0.5
     for attempt in range(3):
