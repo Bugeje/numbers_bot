@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from calc.cycles import MONTH_NAMES, generate_personal_month_cycle_table, calculate_personal_year
 from calc import calculate_core_profile
 from intelligence import get_months_year_analysis
-from output import create_months_report_pdf, create_months_year_report_pdf
+from output import create_months_year_report_pdf
 from interface import build_after_analysis_keyboard
 from helpers import M, MessageManager, Progress, action_typing, action_upload, run_blocking
 
@@ -60,6 +60,7 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ai_analysis = await get_months_year_analysis(
                 profile=core_profile,
                 birthdate=birthdate,
+                personal_year=personal_year,
                 year=target_year,
             )
             if isinstance(ai_analysis, str) and ai_analysis.startswith("❌"):
@@ -77,7 +78,7 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tmp_path = tmp.name
             
             if ai_analysis and ai_analysis != M.ERRORS.AI_GENERIC:
-                # Используем новый шаблон с AI анализом
+                # Используем шаблон с AI анализом
                 await run_blocking(
                     create_months_year_report_pdf, 
                     name, 
@@ -92,15 +93,17 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 filename = "Анализ_месяцев_с_ИИ.pdf"
                 caption = M.CAPTION.MONTHS_YEAR
             else:
-                # Используем обычный шаблон без AI
-                # Передаем ai_analysis для отображения ошибки в стандартном шаблоне
+                # Используем тот же шаблон, но без AI анализа или с ошибкой
                 await run_blocking(
-                    create_months_report_pdf, 
+                    create_months_year_report_pdf, 
                     name, 
                     birthdate, 
-                    month_cycles, 
-                    tmp_path,
-                    ai_analysis  # добавляем ai_text параметр
+                    target_year,
+                    personal_year,
+                    months_data, 
+                    core_profile,
+                    ai_analysis or "Ошибка: AI анализ недоступен",
+                    tmp_path
                 )
                 filename = "Анализ_месяцев.pdf"
                 caption = M.CAPTION.MONTHS

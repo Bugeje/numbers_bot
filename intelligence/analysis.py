@@ -111,7 +111,7 @@ async def get_calendar_analysis(
     )
 
 
-async def get_months_year_analysis(profile: dict, birthdate: str, year: int | None = None) -> str:
+async def get_months_year_analysis(profile: dict, birthdate: str, personal_year: int, year: int | None = None) -> str:
     if year is None:
         year = datetime.today().year
     months_map: dict[int,int] = {}
@@ -122,7 +122,7 @@ async def get_months_year_analysis(profile: dict, birthdate: str, year: int | No
         matches_map[m] = _month_matches_core(profile, pm)
     return await ask_openrouter(
         SYSTEM_PROMPTS["months_year"],
-        months_year_prompt(year=year, months_map=months_map, matches_map=matches_map),
+        months_year_prompt(personal_year=personal_year, months_map=months_map, matches_map=matches_map),
         temperature=settings.ai.temperature,
         max_tokens=settings.ai.max_tokens,
     )

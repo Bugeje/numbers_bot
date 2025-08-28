@@ -77,12 +77,13 @@ def days_prompt(
 from helpers.i18n import RU_MONTHS_FULL
 
 
-def months_year_prompt(year: int, months_map: dict[int,int], matches_map: dict[int,list[str]]) -> str:
+def months_year_prompt(personal_year: int, months_map: dict[int,int], matches_map: dict[int,list[str]]) -> str:
     """
+    personal_year: персональный год (например, 8)
     months_map: {1..12 -> personal_month_number}
     matches_map: {1..12 -> ["match-life_path", "match-expression", ...]}
     """
-    lines = [f"Год: {year}"]
+    lines = [f"Персональный год: {personal_year}"]
     for m in range(1, 13):
         pm = months_map.get(m, "-")
         tags = matches_map.get(m, [])
