@@ -39,8 +39,11 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await action_typing(update.effective_chat)
     progress = await Progress.start(update, "📆 Готовлю анализ месяцев...")
 
-    # Вычисляем персональный год
-    personal_year_str = calculate_personal_year(birthdate)
+    # Используем текущий год как целевой год для анализа
+    target_year = datetime.today().year
+    
+    # Вычисляем персональный год для целевого года
+    personal_year_str = calculate_personal_year(birthdate, target_year)
     personal_year = int(personal_year_str.split('(')[0])  # Извлекаем базовое число
     
     # Получаем таблицу месяцев для данного персонального года
@@ -53,11 +56,11 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if core_profile:
         await progress.set("🤖 Генерирую AI-анализ месяца/года...")
         try:
-            today = datetime.today()
+            # Используем тот же целевой год, что и для расчёта персонального года
             ai_analysis = await get_months_year_analysis(
                 profile=core_profile,
                 birthdate=birthdate,
-                year=today.year,
+                year=target_year,
             )
             if isinstance(ai_analysis, str) and ai_analysis.startswith("❌"):
                 ai_analysis = M.ERRORS.AI_GENERIC
@@ -79,6 +82,7 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     create_months_year_report_pdf, 
                     name, 
                     birthdate, 
+                    target_year,
                     personal_year,
                     months_data, 
                     core_profile,

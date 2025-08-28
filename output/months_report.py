@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import CSS, HTML
 
 from calc.cycles import MONTH_NAMES, calculate_personal_year
+from helpers.i18n import RU_MONTHS_FULL
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
@@ -38,6 +39,7 @@ def create_months_report_pdf(name, birthdate, months_data, output_path, ai_text:
 def create_months_year_report_pdf(
     name: str, 
     birthdate: str, 
+    target_year: int,
     personal_year: int,
     months_data: list, 
     core_profile: dict,
@@ -59,11 +61,8 @@ def create_months_year_report_pdf(
         "birthday": extract_base(core_profile.get("birthday", "0")),
     }
     
-    # Полные названия месяцев
-    month_names_full = [
-        "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-        "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-    ]
+    # Полные названия месяцев (используем импортированные)
+    month_names_full = RU_MONTHS_FULL[1:]  # Исключаем None с индекса 0
     
     # Создаем структуру данных для шаблона
     months_with_matches = []
@@ -94,6 +93,7 @@ def create_months_year_report_pdf(
     html = template.render(
         name=name,
         birthdate=birthdate,
+        target_year=target_year,
         personal_year=personal_year,
         months=months_with_matches,
         core_profile=core_profile,

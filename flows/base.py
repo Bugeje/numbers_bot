@@ -14,7 +14,16 @@ START_KEYBOARD = ReplyKeyboardMarkup(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the bot conversation and ask for name."""
+    # Создаем MessageManager до очистки user_data
+    msg_manager = MessageManager(context)
+    
+    # Очищаем отслеживаемые сообщения
+    await msg_manager.cleanup_tracked_messages()
+    
+    # Затем очищаем данные пользователя
     context.user_data.clear()
+    
+    # Создаем новый MessageManager после очистки, чтобы инициализировать пустой список
     msg_manager = MessageManager(context)
     
     await msg_manager.send_and_track(

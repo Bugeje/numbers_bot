@@ -74,7 +74,8 @@ def days_prompt(
     return text.strip()
 
 
-RU_MONTHS_FULL = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"]
+from helpers.i18n import RU_MONTHS_FULL
+
 
 def months_year_prompt(year: int, months_map: dict[int,int], matches_map: dict[int,list[str]]) -> str:
     """
@@ -86,5 +87,5 @@ def months_year_prompt(year: int, months_map: dict[int,int], matches_map: dict[i
         pm = months_map.get(m, "-")
         tags = matches_map.get(m, [])
         tag_txt = ", ".join(tags) if tags else "—"
-        lines.append(f"{RU_MONTHS_FULL[m-1]}: персональный месяц {pm}; совпадения: {tag_txt}")
+        lines.append(f"{RU_MONTHS_FULL[m]}: персональный месяц {pm}; совпадения: {tag_txt}")
     return "\n".join(lines) + "\n"
