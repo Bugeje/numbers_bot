@@ -4,6 +4,7 @@ import logging
 import httpx
 
 from config import settings
+from helpers import M
 
 API_URL = f"{settings.ai.openrouter_base_url}/chat/completions"
 MODEL = "openai/gpt-4o"
@@ -28,7 +29,7 @@ async def ask_openrouter(
 
     if not settings.ai.openrouter_api_key:
         logger.error("Missing OpenRouter API key")
-        return "❌ Ошибка: отсутствует API-ключ OpenRouter. Проверь .env."
+        return M.ERRORS.AI_NO_KEY
 
     headers = {
         "Authorization": f"Bearer {settings.ai.openrouter_api_key}",
@@ -58,7 +59,7 @@ async def ask_openrouter(
 
             if "choices" not in data or not data["choices"]:
                 logger.error(f"Invalid API response: {data}")
-                return "❌ Неожиданный ответ от API"
+                return M.ERRORS.AI_UNEXPECTED
 
             return data["choices"][0]["message"]["content"].strip()
 
@@ -75,7 +76,7 @@ async def ask_openrouter(
                 reason = e.response.reason_phrase
             except Exception:
                 reason = "HTTP error"
-            return f"❌ Ошибка {status}: {reason}"
+            return M.format_api_error(status, reason)
 
         except Exception as e:
             logger.error(f"Unexpected error on attempt {attempt + 1}: {e}")
@@ -85,7 +86,7 @@ async def ask_openrouter(
                 delay *= 2
                 continue
 
-            return f"❌ Сетевая ошибка: {e}"
+            return M.format_network_error(str(e))
 
 
 async def cleanup_client() -> None:

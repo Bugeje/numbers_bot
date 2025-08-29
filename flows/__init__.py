@@ -4,7 +4,7 @@ from .profile_flow import core_profile_ai_and_pdf, show_core_profile
 from .cycles_flow import show_cycles_profile
 from .days_flow import days_conversation_handler, send_days_pdf
 from .extended_flow import show_extended_only_profile
-from .months_flow import send_months_pdf
+from .months_flow import months_conversation_handler, send_months_pdf
 from .partner_flow import (
     generate_compatibility,
     receive_partner_birthdate_text,

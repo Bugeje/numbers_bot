@@ -9,7 +9,7 @@ from calc.extended import calculate_bridges
 from output import generate_bridges_pdf
 from interface import build_after_analysis_keyboard
 from helpers import run_blocking
-from helpers.messages import M
+from helpers.messages import M, FILENAMES
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 
 
@@ -37,7 +37,7 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bridges = calculate_bridges(core_profile)
             user_data["bridges"] = bridges
         except Exception:
-            await update.message.reply_text(f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}")
+            await M.send_auto_delete_error(update, context, f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}")
             return ConversationHandler.END
 
     # --- прогресс: ИИ-анализ ---
@@ -47,7 +47,7 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         analysis_bridges = await get_bridges_analysis(bridges)
-        if isinstance(analysis_bridges, str) and analysis_bridges.startswith("❌"):
+        if M.is_ai_error(analysis_bridges):
             analysis_bridges = M.ERRORS.AI_GENERIC
     except Exception:
         analysis_bridges = M.ERRORS.AI_GENERIC
@@ -74,12 +74,15 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         with open(output_path, "rb") as pdf_file:
             await update.message.reply_document(
-                document=pdf_file, filename="Анализ_мостов.pdf", caption=M.CAPTION.BRIDGES
+                document=pdf_file, filename=FILENAMES.BRIDGES, caption=M.DOCUMENT_READY
             )
 
         await progress.finish()  # ✅ + автоудаление индикатора
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    await msg_manager.send_and_track(update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard())
+    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    )
     return ConversationHandler.END

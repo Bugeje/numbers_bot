@@ -1,4 +1,5 @@
 import tempfile
+import re
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
@@ -7,7 +8,7 @@ from intelligence import get_active_components, get_calendar_analysis
 from calc.cycles import generate_calendar_matrix, get_personal_month
 from output import generate_pdf, mark_calendar_cells
 from interface import ASK_DAYS_MONTHYEAR_PROMPT, SELECT_MONTH, build_after_analysis_keyboard
-from helpers import M, MessageManager, Progress, action_typing, action_upload, RU_MONTHS_FULL, parse_month_year, run_blocking
+from helpers import M, MessageManager, Progress, action_typing, action_upload, RU_MONTHS_FULL, parse_month_year, run_blocking, FILENAMES, BTN
 
 from .base import start
 
@@ -38,8 +39,10 @@ async def receive_days_monthyear_text(update: Update, context: ContextTypes.DEFA
         context.user_data["days_year"] = year
         return await send_days_pdf(update, context)
     except Exception as e:
-        await update.message.reply_text(
-            f"❌ {e}\n{ASK_DAYS_MONTHYEAR_PROMPT}", parse_mode="Markdown"
+        await M.send_auto_delete_error(
+            update, context,
+            f"{M.ERRORS.DATE_PREFIX}{e}\n{ASK_DAYS_MONTHYEAR_PROMPT}", 
+            parse_mode="Markdown"
         )
         return SELECT_MONTH
 
@@ -53,14 +56,12 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     profile = context.user_data.get("core_profile")
 
     if not (year and month and name and birthdate and profile):
-        await update.effective_message.reply_text(
-            "⚠️ Не хватает данных для расчёта. Пожалуйста, начните заново."
-        )
+        await M.send_auto_delete_error(update, context, M.HINTS.MISSING_DATA)
         return ConversationHandler.END
 
     # --- прогресс: расчёты ---
     await action_typing(update.effective_chat)
-    progress = await Progress.start(update, f"📅 Готовлю календарь дней на {RU_MONTHS_FULL[month]} {year}...")
+    progress = await Progress.start(update, M.PROGRESS.PREPARE_CALENDAR.format(month=RU_MONTHS_FULL[month], year=year))
 
     personal_month = get_personal_month(birthdate, year, month)
     context.user_data["personal_month"] = personal_month
@@ -70,18 +71,18 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     single_components, gradients, fusion_groups = get_active_components(matches_by_day)
 
     legend = {
-        "match-life_path": "🟥 Жизненный путь — тема предназначения, судьбоносные акценты",
-        "match-expression": "🟦 Выражение — энергия действия, реализация потенциала",
-        "match-soul": "🟣 Душа — внутренние желания и эмоциональные импульсы",
-        "match-personality": "🟨 Личность — стиль поведения, как вас видят окружающие",
-        "match-birthday": "🟩 День рождения — врождённые дары, проявления спонтанности",
+        "match-life_path": M.CALENDAR_LEGENDS.LIFE_PATH,
+        "match-expression": M.CALENDAR_LEGENDS.EXPRESSION,
+        "match-soul": M.CALENDAR_LEGENDS.SOUL,
+        "match-personality": M.CALENDAR_LEGENDS.PERSONALITY,
+        "match-birthday": M.CALENDAR_LEGENDS.BIRTHDAY,
     }
     gradient_descriptions = [legend.get(g, g) for g in gradients if g in legend]
 
     month_name = f"{RU_MONTHS_FULL[month]} {year}"
 
     # --- прогресс: ИИ-анализ ---
-    await progress.set("🤖 Генерирую AI-анализ календаря...")
+    await progress.set(M.PROGRESS.AI_CALENDAR)
 
     try:
         calendar_text = await get_calendar_analysis(
@@ -93,7 +94,7 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             fusion_groups=fusion_groups,
             personal_month=personal_month,
         )
-        if isinstance(calendar_text, str) and calendar_text.startswith("❌"):
+        if M.is_ai_error(calendar_text):
             calendar_text = M.ERRORS.AI_GENERIC
     except Exception:
         calendar_text = M.ERRORS.AI_GENERIC
@@ -133,8 +134,8 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open(tmp.name, "rb") as pdf_file:
                 await update.message.reply_document(
                     document=pdf_file, 
-                    filename="Календарь_дней.pdf",
-                    caption="📅 Ваш персональный календарь дней"
+                    filename=FILENAMES.CALENDAR_DAYS,
+                    caption=M.DOCUMENT_READY
                 )
 
         await progress.finish()
@@ -143,8 +144,9 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Отправляем новое навигационное сообщение (трекаем)
     msg_manager = MessageManager(context)
-    await msg_manager.send_and_track(
-        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     return ConversationHandler.END
@@ -152,12 +154,12 @@ async def send_days_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 days_conversation_handler = ConversationHandler(
     entry_points=[
-        MessageHandler(filters.Regex("📅 Календарь дней"), ask_days_start),
+        MessageHandler(filters.Regex(f"^{re.escape(BTN.CALENDAR_DAYS)}$"), ask_days_start),
     ],
     states={
         SELECT_MONTH: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, receive_days_monthyear_text),
         ],
     },
-    fallbacks=[MessageHandler(filters.Regex("^🔁 Старт$"), start)],
+    fallbacks=[MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)],
 )

@@ -8,7 +8,7 @@ from intelligence import get_extended_analysis
 from calc.extended import calculate_extended_profile
 from output import generate_extended_pdf
 from interface import build_after_analysis_keyboard
-from helpers import PRESETS, M, MessageManager, Progress, action_typing, action_upload, run_blocking
+from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
 
 
 async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,7 +25,7 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         extended = calculate_extended_profile(name, birthdate)
         context.user_data["extended_profile"] = extended
     except Exception as e:
-        await update.message.reply_text(f"{M.ERRORS.CALC_EXTENDED}\nПодробности: {e}")
+        await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_EXTENDED, str(e)))
         return ConversationHandler.END
 
     # --- прогресс: ИИ-анализ ---
@@ -35,7 +35,7 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
 
     try:
         analysis_ext = await get_extended_analysis(extended)
-        if analysis_ext.startswith("❌"):
+        if M.is_ai_error(analysis_ext):
             analysis_ext = M.ERRORS.AI_GENERIC
     except Exception:
         analysis_ext = M.ERRORS.AI_GENERIC
@@ -63,8 +63,8 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         with open(output_path, "rb") as pdf_file:
             await update.message.reply_document(
                 document=pdf_file,
-                filename="extended_profile_report.pdf",
-                caption=M.CAPTION.EXTENDED,
+                filename=FILENAMES.EXTENDED_PROFILE,
+                caption=M.DOCUMENT_READY,
             )
 
         await progress.finish()  # ✅ Отчёт готов! (+ автоудаление индикатора)
@@ -72,8 +72,9 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         await progress.fail(M.ERRORS.PDF_FAIL)
 
     # --- финальное сообщение в едином стиле ---
-    await msg_manager.send_and_track(
-        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
     
     return ConversationHandler.END

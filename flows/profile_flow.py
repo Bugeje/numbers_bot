@@ -12,6 +12,7 @@ from interface import build_after_analysis_keyboard
 from helpers import (
     PRESETS,
     M,
+    FILENAMES,
     MessageManager,
     Progress,
     action_typing,
@@ -63,7 +64,7 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         profile = calculate_core_profile(name, birthdate)
         context.user_data["core_profile"] = profile
     except Exception as e:
-        await update.effective_message.reply_text(f"{M.ERRORS.CALC_PROFILE}\nПодробности: {e}")
+        await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_PROFILE, str(e)))
         return ConversationHandler.END
 
     # --- показать краткий итог и клавиатуру следующего шага ---
@@ -74,9 +75,9 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         M.format_core_summary(name, birthdate, profile), parse_mode="Markdown"
     )
     
-    # Отправляем навигационное сообщение (трекаем для удаления)
-    await msg_manager.send_and_track(
-        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     # остаёмся в режиме ожидания кнопок (в т.ч. «Ядро личности» для ИИ+PDF)
@@ -105,7 +106,7 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
 
     try:
         analysis = await get_ai_analysis(profile)
-        if analysis.startswith("❌"):
+        if M.is_ai_error(analysis):
             analysis = M.ERRORS.AI_GENERIC
     except Exception:
         analysis = M.ERRORS.AI_GENERIC
@@ -131,15 +132,15 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
 
         with open(output_path, "rb") as pdf_file:
             await update.effective_message.reply_document(
-                document=pdf_file, filename="core_profile_report.pdf", caption=M.CAPTION.CORE
+                document=pdf_file, filename=FILENAMES.CORE_PROFILE, caption=M.DOCUMENT_READY
             )
 
         await progress.finish()
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    # Отправляем новое навигационное сообщение (трекаем)
-    await msg_manager.send_and_track(
-        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
     return State.EXTENDED_ANALYSIS

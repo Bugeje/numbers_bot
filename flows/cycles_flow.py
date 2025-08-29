@@ -8,7 +8,7 @@ from calc.cycles import (
 )
 from output import generate_cycles_pdf
 from interface import build_after_analysis_keyboard
-from helpers import PRESETS, M, MessageManager, Progress, action_typing, action_upload, run_blocking
+from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
 
 
 async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,7 +23,7 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # --- прогресс: расчёты ---
         await action_typing(update.effective_chat)
-        progress = await Progress.start(update, "🔄 Готовлю анализ по циклам и годам...")
+        progress = await Progress.start(update, M.PROGRESS.PREPARE_CYCLES)
 
         # Вычисления
         personal_years = generate_personal_year_table(birthdate)
@@ -45,7 +45,7 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
 
             with open(pdf_path, "rb") as f:
                 await update.message.reply_document(
-                    document=f, filename="Вершины_года.pdf", caption=M.CAPTION.CYCLES
+                    document=f, filename=FILENAMES.CYCLES, caption=M.DOCUMENT_READY
                 )
 
             await progress.finish()
@@ -53,12 +53,13 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
             await progress.fail(M.ERRORS.PDF_FAIL)
 
         # Отправляем новое навигационное сообщение (трекаем)
-        await msg_manager.send_and_track(
-            update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+        # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+        await update.effective_message.reply_text(
+            M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
         )
 
         return ConversationHandler.END
 
     except Exception as e:
-        await update.message.reply_text("❌ Произошла ошибка при формировании анализа циклов.")
+        await M.send_auto_delete_error(update, context, M.ERRORS.CALC_CYCLES)
         raise e

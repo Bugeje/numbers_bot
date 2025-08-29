@@ -1,16 +1,49 @@
 import tempfile
 import os
+import re
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
 
 from calc.cycles import MONTH_NAMES, generate_personal_month_cycle_table, calculate_personal_year
 from calc import calculate_core_profile
 from intelligence import get_months_year_analysis
 from output import create_months_year_report_pdf
-from interface import build_after_analysis_keyboard
-from helpers import M, MessageManager, Progress, action_typing, action_upload, run_blocking
+from interface import ASK_MONTHS_YEAR_PROMPT, SELECT_MONTHS_YEAR, build_after_analysis_keyboard
+from helpers import M, MessageManager, Progress, action_typing, action_upload, run_blocking, parse_year, FILENAMES, BTN
+
+from .base import start
+
+
+async def ask_months_year_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Запрос года для анализа месяцев."""
+    # Очищаем предыдущие навигационные сообщения
+    msg_manager = MessageManager(context)
+    await msg_manager.cleanup_tracked_messages()
+    
+    # очистим хвосты
+    for k in ("months_target_year",):
+        context.user_data.pop(k, None)
+
+    await msg_manager.send_and_track(update, ASK_MONTHS_YEAR_PROMPT, parse_mode="Markdown")
+    return SELECT_MONTHS_YEAR
+
+
+async def receive_months_year_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка ввода года для анализа месяцев."""
+    try:
+        year = parse_year(update.message.text)
+        context.user_data["months_target_year"] = year
+        return await send_months_pdf(update, context)
+    except Exception as e:
+        await M.send_auto_delete_error(
+            update, context, 
+            f"{M.ERRORS.DATE_PREFIX}{e}\n{ASK_MONTHS_YEAR_PROMPT}", 
+            parse_mode="Markdown"
+        )
+        return SELECT_MONTHS_YEAR
+
 
 
 async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -21,28 +54,32 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = context.user_data.get("name")
     birthdate = context.user_data.get("birthdate")
     core_profile = context.user_data.get("core_profile")
+    target_year = context.user_data.get("months_target_year")
 
     if not name or not birthdate:
-        await update.message.reply_text("⚠️ Сначала введите имя и дату рождения.")
-        return
+        await M.send_auto_delete_error(update, context, M.HINTS.MISSING_BASIC_DATA)
+        return ConversationHandler.END
+        
+    if not target_year:
+        await M.send_auto_delete_error(update, context, M.HINTS.MISSING_YEAR)
+        return ConversationHandler.END
 
     # Автоматически рассчитываем core_profile, если его нет
     if not core_profile:
         try:
             core_profile = calculate_core_profile(name, birthdate)
             context.user_data["core_profile"] = core_profile
-        except Exception:
-            # Если не удалось рассчитать, продолжаем без AI
-            core_profile = None
+        except Exception as e:
+            await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_PROFILE, str(e)))
+            return ConversationHandler.END
 
     # --- прогресс: расчёты ---
     await action_typing(update.effective_chat)
-    progress = await Progress.start(update, "📆 Готовлю анализ месяцев...")
+    progress = await Progress.start(update, M.PROGRESS.PREPARE_MONTHS.format(year=target_year))
 
-    # Используем текущий год как целевой год для анализа
-    target_year = datetime.today().year
+    # Используем выбранный пользователем год
     
-    # Вычисляем персональный год для целевого года
+    # Вычисляем персональный год для выбранного года
     personal_year_str = calculate_personal_year(birthdate, target_year)
     personal_year = int(personal_year_str.split('(')[0])  # Извлекаем базовое число
     
@@ -51,22 +88,20 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     months_data = [str(raw_month_cycles[personal_year][m]) for m in MONTH_NAMES]
     month_cycles = {str(k): [str(v[m]) for m in MONTH_NAMES] for k, v in raw_month_cycles.items()}
 
-    # --- прогресс: AI-анализ (если есть профиль) ---
-    ai_analysis = None
-    if core_profile:
-        await progress.set("🤖 Генерирую AI-анализ месяца/года...")
-        try:
-            # Используем тот же целевой год, что и для расчёта персонального года
-            ai_analysis = await get_months_year_analysis(
-                profile=core_profile,
-                birthdate=birthdate,
-                personal_year=personal_year,
-                year=target_year,
-            )
-            if isinstance(ai_analysis, str) and ai_analysis.startswith("❌"):
-                ai_analysis = M.ERRORS.AI_GENERIC
-        except Exception:
+    # --- прогресс: AI-анализ ---
+    await progress.set(M.PROGRESS.AI_ANALYSIS)
+    try:
+        # Используем выбранный пользователем год
+        ai_analysis = await get_months_year_analysis(
+            profile=core_profile,
+            birthdate=birthdate,
+            personal_year=personal_year,
+            year=target_year,
+        )
+        if M.is_ai_error(ai_analysis):
             ai_analysis = M.ERRORS.AI_GENERIC
+    except Exception:
+        ai_analysis = M.ERRORS.AI_GENERIC
 
     # --- прогресс: PDF ---
     await progress.set(M.PROGRESS.PDF_ONE)
@@ -77,46 +112,28 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             tmp_path = tmp.name
             
-            if ai_analysis and ai_analysis != M.ERRORS.AI_GENERIC:
-                # Используем шаблон с AI анализом
-                await run_blocking(
-                    create_months_year_report_pdf, 
-                    name, 
-                    birthdate, 
-                    target_year,
-                    personal_year,
-                    months_data, 
-                    core_profile,
-                    ai_analysis,
-                    tmp_path
-                )
-                filename = "Анализ_месяцев_с_ИИ.pdf"
-                caption = M.CAPTION.MONTHS_YEAR
-            else:
-                # Используем тот же шаблон, но без AI анализа или с ошибкой
-                await run_blocking(
-                    create_months_year_report_pdf, 
-                    name, 
-                    birthdate, 
-                    target_year,
-                    personal_year,
-                    months_data, 
-                    core_profile,
-                    ai_analysis or "Ошибка: AI анализ недоступен",
-                    tmp_path
-                )
-                filename = "Анализ_месяцев.pdf"
-                caption = M.CAPTION.MONTHS
+        # Всегда используем полный шаблон с AI анализом
+        await run_blocking(
+            create_months_year_report_pdf, 
+            name, 
+            birthdate, 
+            target_year,
+            personal_year,
+            months_data, 
+            core_profile,
+            ai_analysis,
+            tmp_path
+        )
+        
+        await progress.set(M.PROGRESS.SENDING_ONE)
+        await action_upload(update.effective_chat)
 
-            await progress.set(M.PROGRESS.SENDING_ONE)
-            await action_upload(update.effective_chat)
-
-            with open(tmp_path, "rb") as pdf_file:
-                await update.message.reply_document(
-                    document=pdf_file, 
-                    filename=filename,
-                    caption=caption
-                )
+        with open(tmp_path, "rb") as pdf_file:
+            await update.message.reply_document(
+                document=pdf_file, 
+                filename=FILENAMES.MONTHS,
+                caption=M.DOCUMENT_READY
+            )
 
         # Cleanup temporary file
         try:
@@ -128,8 +145,23 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    # Отправляем новое навигационное сообщение (трекаем)
-    await msg_manager.send_and_track(
-        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+    await update.effective_message.reply_text(
+        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
+
+    return ConversationHandler.END
+
+
+months_conversation_handler = ConversationHandler(
+    entry_points=[
+        MessageHandler(filters.Regex(f"^{re.escape(BTN.MONTHS)}$"), ask_months_year_start),
+    ],
+    states={
+        SELECT_MONTHS_YEAR: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, receive_months_year_text),
+        ],
+    },
+    fallbacks=[MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)],
+)
 

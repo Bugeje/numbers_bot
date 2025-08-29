@@ -7,7 +7,7 @@ from intelligence import get_compatibility_interpretation
 from calc import calculate_core_profile
 from output import generate_partner_pdf
 from interface import build_after_analysis_keyboard
-from helpers import M, MessageManager, Progress, action_typing, action_upload, parse_and_normalize, run_blocking
+from helpers import M, MessageManager, Progress, action_typing, action_upload, parse_and_normalize, run_blocking, FILENAMES
 
 from .states import State
 
@@ -18,7 +18,7 @@ async def request_partner_name(update: Update, context: ContextTypes.DEFAULT_TYP
     await msg_manager.cleanup_tracked_messages()
     
     context.user_data["selecting_partner"] = True
-    await msg_manager.send_and_track(update, "Введите имя и фамилию второго партнёра:")
+    await msg_manager.send_and_track(update, M.HINTS.ASK_PARTNER_NAME)
     return State.ASK_PARTNER_NAME
 
 
@@ -33,7 +33,7 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
     context.user_data["partner_name"] = update.message.text.strip()
     await msg_manager.send_and_track(
         update,
-        "📅 Введите дату рождения партнёра в формате ДД.ММ.ГГГГ (например 24.02.1993)."
+        M.HINTS.ASK_PARTNER_BIRTHDATE
     )
 
     return State.ASK_PARTNER_BIRTHDATE
@@ -50,7 +50,7 @@ async def receive_partner_birthdate_text(update: Update, context: ContextTypes.D
         context.user_data["partner_birthdate"] = normalized
         return await generate_compatibility(update, context)
     except Exception as e:
-        await update.message.reply_text(f"❌ {e}\nПопробуйте ещё раз. Пример: 24.02.1993")
+        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}{e}\n{M.HINTS.RETRY_PARTNER_DATE}")
         return State.ASK_PARTNER_BIRTHDATE
 
 
@@ -67,9 +67,7 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
             birth_b = update.message.text.strip()
             context.user_data["partner_birthdate"] = birth_b
         elif not birth_b:
-            await update.effective_message.reply_text(
-                "❌ Не удалось получить дату рождения партнёра."
-            )
+            await M.send_auto_delete_error(update, context, M.HINTS.MISSING_PARTNER_DATA)
             return ConversationHandler.END
 
         # --- прогресс: расчёты ---
@@ -83,7 +81,7 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
 
         try:
             interpretation = await get_compatibility_interpretation(profile_a, profile_b)
-            if isinstance(interpretation, str) and interpretation.startswith("❌"):
+            if M.is_ai_error(interpretation):
                 interpretation = M.ERRORS.AI_GENERIC
         except Exception:
             interpretation = M.ERRORS.AI_GENERIC
@@ -112,8 +110,8 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
                 with open(tmp.name, "rb") as pdf_file:
                     await update.effective_message.reply_document(
                         pdf_file, 
-                        filename="Совместимость_партнёров.pdf",
-                        caption=M.CAPTION.PARTNER
+                        filename=FILENAMES.PARTNER_COMPATIBILITY,
+                        caption=M.DOCUMENT_READY
                     )
 
             await progress.finish()
@@ -124,12 +122,13 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
 
         # Отправляем навигационное сообщение с трекингом для автоудаления
         msg_manager = MessageManager(context)
-        await msg_manager.send_and_track(
-            update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+        # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
+        await update.effective_message.reply_text(
+            M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
         )
 
         return ConversationHandler.END
 
     except Exception as e:
-        await update.effective_message.reply_text(f"❌ Ошибка: {e}")
+        await M.send_auto_delete_error(update, context, M.format_error(str(e)))
         return ConversationHandler.END

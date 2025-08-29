@@ -73,9 +73,19 @@ MONTHS_RU = {
 
 def parse_year(text: str, *, lo: int = 1900, hi: int = 2100) -> int:
     s = (text or "").strip()
-    if not re.fullmatch(r"\d{4}", s):
-        raise ValueError("Неверный формат года. Введите 4 цифры, например: 2025.")
-    year = int(s)
+    
+    # Поддерживаем как 4-значный, так и 2-значный формат года
+    if re.fullmatch(r"\d{4}", s):
+        # 4-значный год (например, 2025)
+        year = int(s)
+    elif re.fullmatch(r"\d{2}", s):
+        # 2-значный год (например, 26 для 2026)
+        year_2digit = int(s)
+        # Логика аналогичная parse_and_normalize: 00–29 → 2000‑е, 30–99 → 1900‑е
+        year = year_2digit + (2000 if year_2digit <= 29 else 1900)
+    else:
+        raise ValueError("Неверный формат года. Введите 2 или 4 цифры, например: 25 или 2025.")
+    
     if not (lo <= year <= hi):
         raise ValueError(f"Год вне диапазона {lo}–{hi}. Введите, например: 2025.")
     return year

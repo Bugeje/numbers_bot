@@ -9,11 +9,35 @@ import re
 
 from config import settings
 
+
+async def error_handler(update, context):
+    """Обработчик ошибок для бота."""
+    import traceback
+    from helpers import M
+    
+    # Логируем ошибку
+    logger = logging.getLogger(__name__)
+    logger.error(f"Ошибка в боте: {context.error}")
+    logger.error(traceback.format_exc())
+    
+    # Отправляем пользователю об ошибке (если есть update)
+    if update and update.effective_message:
+        try:
+            await M.send_auto_delete_error(
+                update, context, 
+                M.ERRORS.GENERIC_ERROR,
+                delete_after=7.0
+            )
+        except Exception:
+            # Если и это не сработало, просто логируем
+            logger.error("Не удалось отправить сообщение об ошибке")
+
+
 def main():
     """Запуск бота с простыми настройками."""
     
     if not settings.telegram.token:
-        print("❌ Ошибка: Не найден TELEGRAM_TOKEN")
+        print(M.ERRORS.NO_TOKEN)
         print("Создайте файл .env и добавьте:")
         print("TELEGRAM_TOKEN=ваш_токен_здесь")
         return
@@ -34,6 +58,7 @@ def main():
             State,
             core_profile_ai_and_pdf,
             days_conversation_handler,
+            months_conversation_handler,
             receive_birthdate_text,
             receive_partner_birthdate_text,
             request_partner_name,
@@ -45,7 +70,7 @@ def main():
             show_extended_only_profile,
             start,
         )
-        from helpers import BTN
+        from helpers import BTN, M
         
         # Создаем HTTP клиент
         request = HTTPXRequest(
@@ -79,7 +104,6 @@ def main():
                     ),
                     MessageHandler(filters.Regex(f"^{re.escape(BTN.BRIDGES)}$"), send_bridges_pdf),
                     MessageHandler(filters.Regex(f"^{re.escape(BTN.CYCLES)}$"), show_cycles_profile),
-                    MessageHandler(filters.Regex(f"^{re.escape(BTN.MONTHS)}$"), send_months_pdf),
                 ],
                 State.ASK_PARTNER_NAME: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, save_partner_name_and_ask_birthdate)
@@ -93,6 +117,7 @@ def main():
         
         app.add_handler(conv_handler)
         app.add_handler(days_conversation_handler)
+        app.add_handler(months_conversation_handler)
         
         # Глобальные обработчики
         app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.PARTNER)}$"), request_partner_name))
@@ -100,8 +125,10 @@ def main():
         app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.EXTENDED)}$"), show_extended_only_profile))
         app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.BRIDGES)}$"), send_bridges_pdf))
         app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.CYCLES)}$"), show_cycles_profile))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.MONTHS)}$"), send_months_pdf))
         app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start))
+        
+        # Добавляем обработчик ошибок
+        app.add_error_handler(error_handler)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
@@ -111,7 +138,7 @@ def main():
         app.run_polling()
         
     except Exception as e:
-        print(f"❌ Ошибка запуска: {e}")
+        print(f"{M.ERRORS.STARTUP_ERROR}: {e}")
         import traceback
         traceback.print_exc()
 

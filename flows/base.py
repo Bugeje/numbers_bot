@@ -2,13 +2,13 @@
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from helpers import MessageManager, parse_and_normalize
+from helpers import MessageManager, parse_and_normalize, M, BTN
 
 from .profile_flow import show_core_profile
 from .states import State
 
 START_KEYBOARD = ReplyKeyboardMarkup(
-    [[KeyboardButton("🔁 Старт")]], resize_keyboard=True, one_time_keyboard=True
+    [[KeyboardButton(BTN.RESTART)]], resize_keyboard=True, one_time_keyboard=True
 )
 
 
@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     await msg_manager.send_and_track(
         update,
-        "Привет! Я помогу рассчитать твоё ядро личности по нумерологии.\n\nКак тебя зовут (Фамилия, Имя, Отчество)?",
+        M.HINTS.ASK_NAME_FULL,
         reply_markup=START_KEYBOARD,
     )
     return State.ASK_NAME
@@ -42,8 +42,7 @@ async def save_name_and_ask_birthdate(update: Update, context: ContextTypes.DEFA
     context.user_data["name"] = update.message.text.strip()
     await msg_manager.send_and_track(
         update,
-        "📅 Введите дату рождения в формате ДД.ММ.ГГГГ (например 24.02.1993)."
-        "Можно также 1993-02-24 или 24/02/1993."
+        M.HINTS.ASK_BIRTHDATE_COMPACT
     )
     return State.ASK_BIRTHDATE
 
@@ -65,7 +64,5 @@ async def receive_birthdate_text(
         # переиспользуем существующий сценарий показа профиля
         return await show_core_profile(update, context)
     except Exception as e:
-        await update.message.reply_text(
-            f"❌ {e}\nПопробуйте ещё раз. " "Примеры: 24.02.1993, 1993-02-24, 24/02/1993."
-        )
+        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}{e}\n{M.HINTS.RETRY_DATE}")
         return State.ASK_BIRTHDATE

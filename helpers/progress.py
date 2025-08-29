@@ -48,6 +48,29 @@ class MessageManager:
         msg = await update.effective_message.reply_text(text, **kwargs)
         self.track_message(msg)
         return msg
+    
+    async def send_error_and_track(self, update: Update, error_text: str, delete_after: float = 5.0, **kwargs) -> Message:
+        """Send an error message, track it, and auto-delete after specified time."""
+        msg = await update.effective_message.reply_text(error_text, **kwargs)
+        self.track_message(msg)
+        
+        # Auto-delete after specified time
+        if delete_after:
+            asyncio.create_task(self._auto_delete_message(msg, delete_after))
+        
+        return msg
+    
+    async def _auto_delete_message(self, message: Message, delay: float) -> None:
+        """Helper to auto-delete a message after delay."""
+        try:
+            await asyncio.sleep(delay)
+            await message.delete()
+            # Remove from tracking list if still there
+            message_ids = self.context.user_data.get("auto_delete_messages", [])
+            if message.message_id in message_ids:
+                message_ids.remove(message.message_id)
+        except Exception:
+            pass  # Message might already be deleted
 
 
 async def action_typing(chat: Chat) -> None:

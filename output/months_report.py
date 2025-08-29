@@ -6,6 +6,7 @@ from weasyprint import CSS, HTML
 
 from calc.cycles import MONTH_NAMES, calculate_personal_year
 from helpers.i18n import RU_MONTHS_FULL
+from helpers import M
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
@@ -71,7 +72,7 @@ def create_months_year_report_pdf(
         personal_year=personal_year,
         months=months_with_matches,
         core_profile=core_profile,
-        ai_analysis=ai_analysis.strip() if ai_analysis else "Ошибка: AI анализ пустой",
+        ai_analysis=ai_analysis.strip() if ai_analysis else M.ERRORS.AI_EMPTY,
     )
     
     css_path = os.path.join(TEMPLATE_DIR, "report_style.css")
