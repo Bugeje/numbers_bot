@@ -9,6 +9,7 @@ from output import generate_partner_pdf
 from helpers import M, MessageManager, Progress, action_typing, action_upload, parse_and_normalize, run_blocking, FILENAMES
 from helpers.data_validator import DataValidator
 from helpers.keyboards import build_after_analysis_keyboard
+from helpers.error_handler import ErrorHandler
 
 from .states import State
 
@@ -88,8 +89,8 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
             interpretation = await get_compatibility_interpretation(profile_a, profile_b)
             if M.is_ai_error(interpretation):
                 interpretation = M.ERRORS.AI_GENERIC
-        except Exception:
-            interpretation = M.ERRORS.AI_GENERIC
+        except Exception as e:
+            interpretation = await ErrorHandler.handle_ai_analysis_error(e)
 
         # --- прогресс: PDF ---
         await progress.set(M.PROGRESS.PDF_ONE)
@@ -120,8 +121,8 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
                     )
 
             await progress.finish()
-        except Exception:
-            await progress.fail(M.ERRORS.PDF_FAIL)
+        except Exception as e:
+            await ErrorHandler.handle_pdf_generation_error(update, context, e, progress)
 
         context.user_data.pop("selecting_partner", None)
 
@@ -135,5 +136,6 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
         return ConversationHandler.END
 
     except Exception as e:
-        await M.send_auto_delete_error(update, context, M.format_error(str(e)))
-        return ConversationHandler.END
+        return await ErrorHandler.handle_generic_error(
+            update, context, e, "расчёта совместимости", ConversationHandler.END
+        )

@@ -11,6 +11,7 @@ from helpers import run_blocking
 from helpers.messages import M, FILENAMES
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 from helpers.keyboards import build_after_analysis_keyboard
+from helpers.error_handler import ErrorHandler
 
 
 async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -36,7 +37,7 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             bridges = calculate_bridges(core_profile)
             user_data["bridges"] = bridges
-        except Exception:
+        except Exception as e:
             await M.send_auto_delete_error(update, context, f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}")
             return ConversationHandler.END
 
@@ -49,8 +50,8 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         analysis_bridges = await get_bridges_analysis(bridges)
         if M.is_ai_error(analysis_bridges):
             analysis_bridges = M.ERRORS.AI_GENERIC
-    except Exception:
-        analysis_bridges = M.ERRORS.AI_GENERIC
+    except Exception as e:
+        analysis_bridges = await ErrorHandler.handle_ai_analysis_error(e)
 
     # --- прогресс: PDF ---
     await progress.set(M.PROGRESS.PDF_ONE)
@@ -78,8 +79,8 @@ async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         await progress.finish()  # ✅ + автоудаление индикатора
-    except Exception:
-        await progress.fail(M.ERRORS.PDF_FAIL)
+    except Exception as e:
+        await ErrorHandler.handle_pdf_generation_error(update, context, e, progress)
 
     # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
     msg_manager = MessageManager(context)

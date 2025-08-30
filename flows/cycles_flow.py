@@ -11,6 +11,7 @@ from intelligence import get_cycles_analysis
 from output import generate_cycles_pdf
 from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
 from helpers.keyboards import build_after_analysis_keyboard
+from helpers.error_handler import ErrorHandler
 
 
 async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,7 +88,7 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error in cycles AI analysis: {e}")
-            ai_analysis = M.ERRORS.AI_GENERIC
+            ai_analysis = await ErrorHandler.handle_ai_analysis_error(e)
 
         # --- прогресс: PDF ---
         await progress.set(M.PROGRESS.PDF_ONE)
@@ -118,8 +119,8 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
                 )
 
             await progress.finish()
-        except Exception:
-            await progress.fail(M.ERRORS.PDF_FAIL)
+        except Exception as e:
+            await ErrorHandler.handle_pdf_generation_error(update, context, e, progress)
 
         # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
         msg_manager = MessageManager(context)
@@ -130,5 +131,6 @@ async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ConversationHandler.END
 
     except Exception as e:
-        await M.send_auto_delete_error(update, context, M.ERRORS.CALC_CYCLES)
-        raise e
+        return await ErrorHandler.handle_generic_error(
+            update, context, e, "расчёта циклов", ConversationHandler.END
+        )

@@ -20,6 +20,7 @@ from helpers import (
 )
 from helpers.data_validator import DataValidator
 from helpers.keyboards import build_after_analysis_keyboard
+from helpers.error_handler import ErrorHandler, FlowErrorHandler
 
 from .states import State
 
@@ -46,8 +47,9 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         profile = calculate_core_profile(name, birthdate)
         context.user_data["core_profile"] = profile
     except Exception as e:
-        await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_PROFILE, str(e)))
-        return ConversationHandler.END
+        return await ErrorHandler.handle_calculation_error(
+            update, context, e, "расчёта ядра личности", ConversationHandler.END
+        )
 
     # --- показать краткий итог и клавиатуру следующего шага ---
     msg_manager = MessageManager(context)
@@ -90,8 +92,8 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
         analysis = await get_ai_analysis(profile)
         if M.is_ai_error(analysis):
             analysis = M.ERRORS.AI_GENERIC
-    except Exception:
-        analysis = M.ERRORS.AI_GENERIC
+    except Exception as e:
+        analysis = await ErrorHandler.handle_ai_analysis_error(e)
 
     await progress.set(M.PROGRESS.PDF_ONE)
     await action_upload(update.effective_chat)
@@ -118,8 +120,8 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
             )
 
         await progress.finish()
-    except Exception:
-        await progress.fail(M.ERRORS.PDF_FAIL)
+    except Exception as e:
+        await ErrorHandler.handle_pdf_generation_error(update, context, e, progress)
 
     # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
     msg_manager = MessageManager(context)

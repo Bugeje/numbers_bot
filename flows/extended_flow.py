@@ -9,6 +9,7 @@ from calc.extended import calculate_extended_profile
 from output import generate_extended_pdf
 from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
 from helpers.keyboards import build_after_analysis_keyboard
+from helpers.error_handler import ErrorHandler
 
 
 async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,8 +26,9 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         extended = calculate_extended_profile(name, birthdate)
         context.user_data["extended_profile"] = extended
     except Exception as e:
-        await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_EXTENDED, str(e)))
-        return ConversationHandler.END
+        return await ErrorHandler.handle_calculation_error(
+            update, context, e, "расчёта расширенных чисел", ConversationHandler.END
+        )
 
     # --- прогресс: ИИ-анализ ---
     await action_typing(update.effective_chat)
@@ -37,8 +39,8 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
         analysis_ext = await get_extended_analysis(extended)
         if M.is_ai_error(analysis_ext):
             analysis_ext = M.ERRORS.AI_GENERIC
-    except Exception:
-        analysis_ext = M.ERRORS.AI_GENERIC
+    except Exception as e:
+        analysis_ext = await ErrorHandler.handle_ai_analysis_error(e)
 
     # --- прогресс: PDF ---
     await progress.set(M.PROGRESS.PDF_ONE)
@@ -68,8 +70,8 @@ async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAU
             )
 
         await progress.finish()  # ✅ Отчёт готов! (+ автоудаление индикатора)
-    except Exception:
-        await progress.fail(M.ERRORS.PDF_FAIL)
+    except Exception as e:
+        await ErrorHandler.handle_pdf_generation_error(update, context, e, progress)
 
     # --- финальное сообщение в едином стиле ---
     # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
