@@ -61,6 +61,7 @@ class AIAnalyzer:
         ai_function: Callable, 
         *args,
         progress_presets: list = None,
+        fallback_message: str = None,
         **kwargs
     ) -> tuple[str, Progress]:
         """
@@ -78,7 +79,7 @@ class AIAnalyzer:
         await progress.animate(progress_presets, delay=0.6)
         
         # Выполняем анализ
-        result = await AIAnalyzer.safe_analysis(ai_function, *args, **kwargs)
+        result = await AIAnalyzer.safe_analysis(ai_function, *args, fallback_message=fallback_message, **kwargs)
         
         return result, progress
 
@@ -147,7 +148,8 @@ class CachedAIAnalyzer(AIAnalyzer):
             ai_function, *args, fallback_message=fallback_message, **kwargs
         )
         
-        # Сохраняем в кеш (только успешные результаты)
+        # Сохраняем в кеш (только успешные результаты, не ошибки)
+        from helpers.messages import M
         if use_cache and result != (fallback_message or M.ERRORS.AI_GENERIC):
             analysis_cache.set(func_name, result, *args, **kwargs)
         

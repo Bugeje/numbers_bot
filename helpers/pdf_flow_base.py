@@ -14,6 +14,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from helpers import run_blocking, M, FILENAMES
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
+from helpers.ai_analyzer import AIAnalyzer
 
 
 class BasePDFFlow(ABC):
@@ -50,6 +51,7 @@ class BasePDFFlow(ABC):
         await self.generate_and_send_pdf(update, context, ai_analysis)
         
         # 5. Финальная навигация
+        # Импортируем локально чтобы избежать циклического импорта
         from interface import build_after_analysis_keyboard
         await msg_manager.send_navigation_message(
             update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
@@ -152,10 +154,20 @@ class AIAnalysisMixin:
     
     async def safe_ai_analysis(self, ai_function: Callable, *args, **kwargs) -> str:
         """Безопасное выполнение AI анализа с обработкой ошибок."""
-        try:
-            analysis = await ai_function(*args, **kwargs)
-            if M.is_ai_error(analysis):
-                return M.ERRORS.AI_GENERIC
-            return analysis
-        except Exception:
-            return M.ERRORS.AI_GENERIC
+        # Используем новый AIAnalyzer для унифицированной обработки
+        return await AIAnalyzer.safe_analysis(ai_function, *args, **kwargs)
+    
+    async def safe_ai_analysis_with_progress(
+        self, 
+        update: Update, 
+        ai_function: Callable, 
+        *args, 
+        progress_presets: list = None,
+        **kwargs
+    ) -> tuple[str, Progress]:
+        """Безопасное выполнение AI анализа с прогрессом."""
+        # Используем новый AIAnalyzer для унифицированной обработки с прогрессом
+        return await AIAnalyzer.analysis_with_progress(
+            update, ai_function, *args, 
+            progress_presets=progress_presets, **kwargs
+        )
