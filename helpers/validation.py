@@ -1,4 +1,7 @@
-# helpers/validation.py
+"""
+Simple validation functions for basic input validation.
+For more complex validation scenarios, see data_validator.py
+"""
 import re
 
 

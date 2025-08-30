@@ -14,7 +14,6 @@ from helpers import M  # Переносим сюда
 async def error_handler(update, context):
     """Обработчик ошибок для бота."""
     import traceback
-    from helpers import M
     
     # Логируем ошибку
     logger = logging.getLogger(__name__)
