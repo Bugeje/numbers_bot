@@ -135,8 +135,43 @@ def main():
         logger = logging.getLogger(__name__)
         logger.info("✅ Бот запущен успешно!")
         
+        # Добавляем обработчик очистки ресурсов
+        import signal
+        import sys
+        
+        async def cleanup_resources():
+            """Очистка ресурсов при завершении."""
+            try:
+                from intelligence.engine import cleanup_client
+                await cleanup_client()
+                logger.info("Ресурсы очищены")
+            except Exception as e:
+                logger.error(f"Ошибка при очистке ресурсов: {e}")
+        
+        def signal_handler(sig, frame):
+            logger.info("Получен сигнал завершения")
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(cleanup_resources())
+            except Exception as e:
+                logger.error(f"Ошибка при завершении: {e}")
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
         # Запускаем бота
-        app.run_polling()
+        try:
+            app.run_polling()
+        finally:
+            # Очистка при нормальном завершении
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(cleanup_resources())
+            except Exception as e:
+                logger.error(f"Ошибка при финальной очистке: {e}")
         
     except Exception as e:
         print(f"{M.ERRORS.STARTUP_ERROR}: {e}")

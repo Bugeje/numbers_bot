@@ -26,13 +26,17 @@ class SimpleSettings:
         self.debug = os.getenv('DEBUG', 'false').lower() == 'true'
         self.log_level = os.getenv('LOG_LEVEL', 'INFO')
         
-        # HTTP settings
-        self.http_timeout = float(os.getenv('HTTP_TIMEOUT', '30.0'))
-        self.connection_pool_size = int(os.getenv('CONNECTION_POOL_SIZE', '100'))
+        # HTTP settings - optimized for high concurrency
+        self.http_timeout = float(os.getenv('HTTP_TIMEOUT', '45.0'))  # Increased for AI processing
+        self.connection_pool_size = int(os.getenv('CONNECTION_POOL_SIZE', '200'))
+        self.max_keepalive_connections = int(os.getenv('MAX_KEEPALIVE_CONNECTIONS', '100'))
+        self.keepalive_expiry = float(os.getenv('KEEPALIVE_EXPIRY', '30.0'))
         
-        # Performance settings
-        self.max_concurrent_requests = int(os.getenv('MAX_CONCURRENT_REQUESTS', '50'))
-        self.thread_pool_size = int(os.getenv('THREAD_POOL_SIZE', '20'))
+        # Performance settings - optimized for 100+ concurrent users
+        self.max_concurrent_requests = int(os.getenv('MAX_CONCURRENT_REQUESTS', '200'))
+        self.thread_pool_size = int(os.getenv('THREAD_POOL_SIZE', '100'))
+        self.ai_semaphore_limit = int(os.getenv('AI_SEMAPHORE_LIMIT', '50'))
+        self.pdf_semaphore_limit = int(os.getenv('PDF_SEMAPHORE_LIMIT', '30'))
         
         # Nested settings as objects
         self.telegram = self._create_telegram_settings()
@@ -48,7 +52,11 @@ class SimpleSettings:
                 self.token = os.getenv('TELEGRAM_TOKEN', '')
                 self.webhook_url = os.getenv('TELEGRAM_WEBHOOK_URL', '')
                 self.webhook_secret = os.getenv('TELEGRAM_WEBHOOK_SECRET', '')
-                self.max_connections = int(os.getenv('TELEGRAM_MAX_CONNECTIONS', '100'))
+                self.max_connections = int(os.getenv('TELEGRAM_MAX_CONNECTIONS', '200'))
+                self.read_timeout = float(os.getenv('TELEGRAM_READ_TIMEOUT', '30.0'))
+                self.write_timeout = float(os.getenv('TELEGRAM_WRITE_TIMEOUT', '30.0'))
+                self.connect_timeout = float(os.getenv('TELEGRAM_CONNECT_TIMEOUT', '10.0'))
+                self.pool_timeout = float(os.getenv('TELEGRAM_POOL_TIMEOUT', '5.0'))
         
         return TelegramSettings()
     

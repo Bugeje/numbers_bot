@@ -3,6 +3,7 @@ from config import settings
 
 from calc.cycles import get_personal_month
 from calc.math import extract_base
+from helpers.concurrency import get_concurrency_manager
 from .engine import ask_openrouter
 from .prompts import (
     bridges_prompt,
@@ -36,39 +37,106 @@ def _month_matches_core(profile: dict, personal_month: int) -> list[str]:
 
 
 async def get_ai_analysis(core_profile: dict) -> str:
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["profile"],
-        profile_prompt(core_profile),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Основной анализ личности с контролем конкурентности и детальной диагностикой."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        # Проверяем конфигурацию
+        if not settings.ai.openrouter_api_key:
+            logger.error("OpenRouter API key is missing")
+            return "❌ Ошибка конфигурации: отсутствует API ключ. Обратитесь к администратору."
+        
+        # Проверяем входные данные
+        if not core_profile or not isinstance(core_profile, dict):
+            logger.error(f"Invalid core_profile data: {core_profile}")
+            return "❌ Ошибка данных: некорректный профиль для анализа."
+        
+        logger.info(f"Starting AI analysis for profile: {list(core_profile.keys())}")
+        
+        async with concurrency_manager.ai_request_context():
+            result = await ask_openrouter(
+                SYSTEM_PROMPTS["profile"],
+                profile_prompt(core_profile),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+            
+            # Проверяем результат
+            if not result or len(result.strip()) < 10:
+                logger.warning(f"AI returned empty or very short response: {result}")
+                return "❌ Получен пустой ответ от AI. Попробуйте позже."
+            
+            # Проверяем на ошибки API
+            if result.startswith("❌"):
+                logger.error(f"AI API error: {result}")
+                return result
+            
+            logger.info("AI analysis completed successfully")
+            return result
+            
+    except RuntimeError as e:
+        logger.warning(f"Concurrency limit reached: {e}")
+        return "⚠️ Система временно перегружена. Попробуйте через несколько секунд."
+    except Exception as e:
+        logger.error(f"Unexpected error in AI analysis: {type(e).__name__}: {e}")
+        return f"❌ Ошибка при получении анализа: {type(e).__name__}. Попробуйте позже."
 
 
 async def get_extended_analysis(extended_profile: dict) -> str:
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["extended"],
-        extended_prompt(extended_profile),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Расширенный анализ с контролем конкурентности."""
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["extended"],
+                extended_prompt(extended_profile),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
 
 
 async def get_bridges_analysis(bridges: dict) -> str:
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["bridges"],
-        bridges_prompt(bridges),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Анализ мостов с контролем конкурентности."""
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["bridges"],
+                bridges_prompt(bridges),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
 
 
 async def get_compatibility_interpretation(profile_a: dict, profile_b: dict) -> str:
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["compatibility"],
-        compatibility_prompt(profile_a, profile_b),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Анализ совместимости с контролем конкурентности."""
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["compatibility"],
+                compatibility_prompt(profile_a, profile_b),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
 
 
 def get_active_components(matches_by_day: dict) -> tuple[list[str], list[str], list[str]]:
@@ -97,19 +165,27 @@ async def get_calendar_analysis(
     fusion_groups: list[str],
     personal_month: int = None,
 ) -> str:
-
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["days"],
-        days_prompt(
-            month_name=month_name,
-            personal_month=personal_month,
-            single_components=single_components,
-            gradients=gradients,
-            fusion_groups=fusion_groups,
-        ),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Календарный анализ с контролем конкурентности."""
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["days"],
+                days_prompt(
+                    month_name=month_name,
+                    personal_month=personal_month,
+                    single_components=single_components,
+                    gradients=gradients,
+                    fusion_groups=fusion_groups,
+                ),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
 
 
 async def get_cycles_analysis(
@@ -120,16 +196,25 @@ async def get_cycles_analysis(
     pinnacles: list,
     personal_year_blocks: dict
 ) -> str:
-    """Получить ИИ анализ жизненных циклов."""
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["cycles"],
-        cycles_prompt(name, birthdate, life_path, personal_years, pinnacles, personal_year_blocks),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    """Получить ИИ анализ жизненных циклов с контролем конкурентности."""
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["cycles"],
+                cycles_prompt(name, birthdate, life_path, personal_years, pinnacles, personal_year_blocks),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
 
 
 async def get_months_year_analysis(profile: dict, birthdate: str, personal_year: int, year: int | None = None) -> str:
+    """Анализ месяцев года с контролем конкурентности."""
     if year is None:
         year = datetime.today().year
     months_map: dict[int,int] = {}
@@ -138,9 +223,18 @@ async def get_months_year_analysis(profile: dict, birthdate: str, personal_year:
         pm = get_personal_month(birthdate=birthdate, year=year, month=m)
         months_map[m] = pm
         matches_map[m] = _month_matches_core(profile, pm)
-    return await ask_openrouter(
-        SYSTEM_PROMPTS["months_year"],
-        months_year_prompt(personal_year=personal_year, months_map=months_map, matches_map=matches_map),
-        temperature=settings.ai.temperature,
-        max_tokens=settings.ai.max_tokens,
-    )
+    
+    concurrency_manager = get_concurrency_manager()
+    
+    try:
+        async with concurrency_manager.ai_request_context():
+            return await ask_openrouter(
+                SYSTEM_PROMPTS["months_year"],
+                months_year_prompt(personal_year=personal_year, months_map=months_map, matches_map=matches_map),
+                temperature=settings.ai.temperature,
+                max_tokens=settings.ai.max_tokens,
+            )
+    except RuntimeError:
+        return "Система временно перегружена. Попробуйте позже."
+    except Exception:
+        return "Ошибка при получении анализа."
