@@ -100,7 +100,8 @@ class MonthsFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
             "personal_year": user_data["personal_year"],
             "months_data": user_data["months_data"],
             "profile": user_data["core_profile"],
-            "ai_analysis": ai_analysis or M.ERRORS.AI_GENERIC
+            "ai_analysis": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:

@@ -62,7 +62,8 @@ class BridgesFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
             "name": context.user_data["name"],
             "birthdate": context.user_data["birthdate"],
             "bridges": context.user_data["bridges"],
-            "analysis_bridges": ai_analysis or M.ERRORS.AI_GENERIC
+            "analysis_bridges": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:

@@ -191,16 +191,18 @@ class PDFGenerationQueue:
         
         logger.info(f"Started {self.max_workers} PDF generation workers")
     
-    async def stop(self, timeout: float = 10.0):
-        """Stop all workers and wait for completion."""
+    async def stop(self, timeout: float = 5.0):
+        """Stop the PDF generation queue and all workers."""
         if not self._running:
             return
-        
+            
+        logger.info("Stopping PDF generation queue...")
         self._running = False
         
         # Cancel all workers
         for worker in self._workers:
-            worker.cancel()
+            if not worker.done():
+                worker.cancel()
         
         # Wait for workers to finish
         if self._workers:
@@ -211,6 +213,11 @@ class PDFGenerationQueue:
                 )
             except asyncio.TimeoutError:
                 logger.warning("Some PDF workers didn't finish within timeout")
+            except RuntimeError as e:
+                # Event loop might be closed
+                logger.warning(f"Could not wait for workers to finish: {e}")
+            except Exception as e:
+                logger.warning(f"Unexpected error while stopping workers: {e}")
         
         self._workers.clear()
         logger.info("PDF generation queue stopped")
@@ -236,9 +243,24 @@ class PDFGenerationQueue:
             except asyncio.CancelledError:
                 logger.debug(f"PDF worker {worker_name} cancelled")
                 break
+            except RuntimeError as e:
+                # Event loop might be closed
+                if "no running event loop" in str(e) or "Event loop is closed" in str(e):
+                    logger.debug(f"PDF worker {worker_name} stopping due to closed event loop")
+                    break
+                else:
+                    logger.error(f"PDF worker {worker_name} runtime error: {e}")
+                    break
             except Exception as e:
                 logger.error(f"PDF worker {worker_name} error: {e}")
-                await asyncio.sleep(1)  # Brief pause before retrying
+                try:
+                    # Check if event loop is still running before sleeping
+                    asyncio.get_event_loop()
+                    await asyncio.sleep(1)  # Brief pause before retrying
+                except RuntimeError:
+                    # Event loop might be closed
+                    logger.debug(f"PDF worker {worker_name} stopping due to closed event loop")
+                    break
         
         logger.debug(f"PDF worker {worker_name} stopped")
     
@@ -250,27 +272,22 @@ class PDFGenerationQueue:
         logger.debug(f"Worker {worker_name} processing job {job.id}")
         
         try:
-            # Import concurrency manager here to avoid circular imports
-            from .concurrency import get_concurrency_manager
-            concurrency_manager = get_concurrency_manager()
+            # Execute the PDF generation function in a thread
+            # The PDF queue has its own worker system, so we don't need the concurrency manager semaphore
+            result = await asyncio.to_thread(job.func, *job.args, **job.kwargs)
             
-            # Use PDF generation semaphore
-            async with concurrency_manager.pdf_generation_context():
-                # Execute the PDF generation function in a thread
-                result = await asyncio.to_thread(job.func, *job.args, **job.kwargs)
-                
-                job.result = result
-                job.status = PDFJobStatus.COMPLETED
-                job.completed_at = time.time()
-                
-                # Set future result
-                if not job.future.cancelled():
-                    job.future.set_result(result)
-                
-                # Update metrics
-                await self._update_metrics(job)
-                
-                logger.debug(f"Job {job.id} completed in {job.duration:.2f}s")
+            job.result = result
+            job.status = PDFJobStatus.COMPLETED
+            job.completed_at = time.time()
+            
+            # Set future result
+            if not job.future.cancelled():
+                job.future.set_result(result)
+            
+            # Update metrics
+            await self._update_metrics(job)
+            
+            logger.debug(f"Job {job.id} completed in {job.duration:.2f}s")
         
         except Exception as e:
             job.error = str(e)
@@ -352,7 +369,7 @@ async def get_pdf_queue() -> PDFGenerationQueue:
     if _pdf_queue is None:
         from config import settings
         _pdf_queue = PDFGenerationQueue(
-            max_workers=min(settings.pdf_semaphore_limit, 5),
+            max_workers=min(settings.pdf_semaphore_limit, 10),  # Увеличиваем количество воркеров
             batch_size=3,
             batch_timeout=2.0
         )

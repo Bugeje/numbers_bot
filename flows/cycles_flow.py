@@ -116,10 +116,11 @@ class CyclesFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
         return {
             "name": user_data["name"],
             "birthdate": user_data["birthdate"],
-            "personal_years": user_data["personal_years_dict"],
-            "pinnacles": user_data["pinnacles_dict"],
-            "personal_year_blocks": user_data["personal_year_blocks_list"],
-            "ai_analysis": ai_analysis or M.ERRORS.AI_GENERIC
+            "personal_years": user_data["personal_years"],
+            "pinnacles": user_data["pinnacles_dict"],  # Use the dict version
+            "personal_year_blocks": user_data["personal_year_blocks_list"],  # Use the list version
+            "ai_analysis": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:

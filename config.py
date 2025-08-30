@@ -35,8 +35,8 @@ class SimpleSettings:
         # Performance settings - optimized for 100+ concurrent users
         self.max_concurrent_requests = int(os.getenv('MAX_CONCURRENT_REQUESTS', '200'))
         self.thread_pool_size = int(os.getenv('THREAD_POOL_SIZE', '100'))
-        self.ai_semaphore_limit = int(os.getenv('AI_SEMAPHORE_LIMIT', '50'))
-        self.pdf_semaphore_limit = int(os.getenv('PDF_SEMAPHORE_LIMIT', '30'))
+        self.ai_semaphore_limit = int(os.getenv('AI_SEMAPHORE_LIMIT', '200'))
+        self.pdf_semaphore_limit = int(os.getenv('PDF_SEMAPHORE_LIMIT', '100'))
         
         # Nested settings as objects
         self.telegram = self._create_telegram_settings()

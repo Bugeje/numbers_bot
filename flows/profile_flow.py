@@ -35,10 +35,14 @@ class CoreProfileFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin)
     
     async def perform_ai_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """AI анализ для core profile."""
-        progress = await self.start_ai_progress(update)
-        
+        # Используем асинхронный AI анализ для предотвращения блокировки
+        from helpers.ai_analyzer import AIAnalyzer
         profile = context.user_data["core_profile"]
-        analysis = await self.safe_ai_analysis(get_ai_analysis, profile)
+        analysis = await AIAnalyzer.async_analysis(
+            update,
+            get_ai_analysis, 
+            profile
+        )
         
         return analysis
     
@@ -48,7 +52,8 @@ class CoreProfileFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin)
             "name": context.user_data["name"],
             "birthdate": context.user_data["birthdate"],
             "profile": context.user_data["core_profile"],
-            "analysis": ai_analysis or M.ERRORS.AI_GENERIC
+            "analysis": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:

@@ -6,10 +6,14 @@
 
 import logging
 import re
+import asyncio
+import signal
+import sys
+
+import httpx
 
 from config import settings
 from helpers import M  # Переносим сюда
-
 
 async def error_handler(update, context):
     """Обработчик ошибок для бота."""
@@ -72,7 +76,7 @@ def main():
         )
         from helpers import BTN
         
-        # Создаем HTTP клиент
+        # Создаем HTTP клиент с настройками для высокой нагрузки
         request = HTTPXRequest(
             read_timeout=settings.http_timeout,
             write_timeout=settings.http_timeout,
@@ -80,8 +84,8 @@ def main():
             pool_timeout=settings.http_timeout,
         )
         
-        # Создаем приложение
-        app = ApplicationBuilder().token(settings.telegram.token).request(request).build()
+        # Создаем приложение с настройками для высокой нагрузки
+        app = ApplicationBuilder().token(settings.telegram.token).request(request).concurrent_updates(True).build()
         
         # Настраиваем обработчики
         conv_handler = ConversationHandler(
@@ -115,17 +119,33 @@ def main():
             fallbacks=[MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)],
         )
         
+        # Добавляем conversation handler первым, чтобы он имел приоритет
         app.add_handler(conv_handler)
         app.add_handler(days_conversation_handler)
         app.add_handler(months_conversation_handler)
         
-        # Глобальные обработчики
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.PARTNER)}$"), request_partner_name))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.CORE)}$"), core_profile_ai_and_pdf))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.EXTENDED)}$"), show_extended_only_profile))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.BRIDGES)}$"), send_bridges_pdf))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.CYCLES)}$"), show_cycles_profile))
-        app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start))
+        # Глобальные обработчики - делаем их более специфичными чтобы они не мешали conversation states
+        # Они будут срабатывать только когда нет активной conversation
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.CORE)}$") & filters.ChatType.PRIVATE,
+            core_profile_ai_and_pdf
+        ))
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.EXTENDED)}$") & filters.ChatType.PRIVATE,
+            show_extended_only_profile
+        ))
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.BRIDGES)}$") & filters.ChatType.PRIVATE,
+            send_bridges_pdf
+        ))
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.CYCLES)}$") & filters.ChatType.PRIVATE,
+            show_cycles_profile
+        ))
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.RESTART)}$") & filters.ChatType.PRIVATE,
+            start
+        ))
         
         # Добавляем обработчик ошибок
         app.add_error_handler(error_handler)
@@ -141,9 +161,33 @@ def main():
         async def cleanup_resources():
             """Очистка ресурсов при завершении."""
             try:
-                from intelligence.engine import cleanup_client
-                await cleanup_client()
-                logger.info("Ресурсы очищены")
+                logger.info("Начало очистки ресурсов...")
+                
+                # Очистка PDF очереди первой, чтобы остановить воркеры
+                try:
+                    from helpers.pdf_queue import cleanup_pdf_queue
+                    await cleanup_pdf_queue()
+                    logger.info("PDF очередь очищена")
+                except Exception as e:
+                    logger.error(f"Ошибка при очистке PDF очереди: {e}")
+                
+                # Очистка фоновых задач
+                try:
+                    from helpers.background_tasks import cleanup_background_task_manager
+                    await cleanup_background_task_manager()
+                    logger.info("Фоновые задачи очищены")
+                except Exception as e:
+                    logger.error(f"Ошибка при очистке фоновых задач: {e}")
+                
+                # Очистка HTTP клиентов
+                try:
+                    from intelligence.engine import cleanup_client
+                    await cleanup_client()
+                    logger.info("HTTP клиенты очищены")
+                except Exception as e:
+                    logger.error(f"Ошибка при очистке HTTP клиентов: {e}")
+                
+                logger.info("Все ресурсы очищены")
             except Exception as e:
                 logger.error(f"Ошибка при очистке ресурсов: {e}")
         
@@ -151,8 +195,23 @@ def main():
             logger.info("Получен сигнал завершения")
             import asyncio
             try:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(cleanup_resources())
+                # Пытаемся получить текущий event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Если event loop запущен, планируем задачу на следующий тик
+                        future = asyncio.run_coroutine_threadsafe(cleanup_resources(), loop)
+                        # Ждем завершения с таймаутом
+                        try:
+                            future.result(timeout=5.0)
+                        except:
+                            pass
+                    else:
+                        # Если event loop не запущен, запускаем его
+                        loop.run_until_complete(cleanup_resources())
+                except RuntimeError:
+                    # Если event loop еще не создан, создаем новый
+                    asyncio.run(cleanup_resources())
             except Exception as e:
                 logger.error(f"Ошибка при завершении: {e}")
             sys.exit(0)
@@ -165,10 +224,31 @@ def main():
             app.run_polling()
         finally:
             # Очистка при нормальном завершении
-            import asyncio
             try:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(cleanup_resources())
+                logger.info("Начало финальной очистки ресурсов...")
+                import asyncio
+                # Проверяем, запущен ли event loop
+                try:
+                    # Пытаемся получить текущий event loop
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Если event loop запущен, планируем задачу на следующий тик
+                        future = asyncio.run_coroutine_threadsafe(cleanup_resources(), loop)
+                        # Ждем завершения с таймаутом
+                        try:
+                            future.result(timeout=5.0)
+                        except:
+                            pass
+                    else:
+                        # Если event loop не запущен, запускаем его
+                        loop.run_until_complete(cleanup_resources())
+                except RuntimeError:
+                    # Если event loop еще не создан, создаем новый
+                    asyncio.run(cleanup_resources())
+                except Exception as e:
+                    # Handle any other exceptions during cleanup
+                    logger.error(f"Ошибка при финальной очистке: {e}")
+                logger.info("Финальная очистка ресурсов завершена")
             except Exception as e:
                 logger.error(f"Ошибка при финальной очистке: {e}")
         

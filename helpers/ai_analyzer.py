@@ -6,6 +6,7 @@ import logging
 from typing import Optional, Callable, Any
 from helpers.messages import M
 from helpers.progress import Progress, PRESETS, action_typing
+from helpers.background_tasks import get_background_task_manager
 
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,56 @@ logger = logging.getLogger(__name__)
 
 class AIAnalyzer:
     """Унифицированный анализатор AI с общей логикой обработки ошибок."""
+    
+    @staticmethod
+    async def async_analysis(
+        update,
+        ai_function: Callable, 
+        *args, 
+        progress_presets: list = None,
+        fallback_message: str = None,
+        **kwargs
+    ) -> str:
+        """
+        Асинхронный AI анализ с фоновой обработкой.
+        
+        Returns:
+            str: Результат анализа
+        """
+        if progress_presets is None:
+            progress_presets = PRESETS["ai"]
+        
+        # Запускаем прогресс
+        await action_typing(update.effective_chat)
+        progress = await Progress.start(update, progress_presets[0])
+        
+        # Создаем задачу в фоне
+        task_manager = await get_background_task_manager()
+        task_id = await task_manager.submit_task(
+            AIAnalyzer.safe_analysis, 
+            ai_function, 
+            *args, 
+            fallback_message=fallback_message, 
+            **kwargs
+        )
+        
+        # Анимируем прогресс во время выполнения задачи
+        try:
+            # Ждем завершения задачи с анимацией
+            result = await task_manager.get_result(task_id, timeout=120.0)  # 2 минуты таймаут
+            await progress.animate(progress_presets, delay=0.6)
+        except asyncio.TimeoutError:
+            await progress.fail("⚠️ Превышено время ожидания анализа")
+            return fallback_message or M.ERRORS.AI_GENERIC
+        except Exception as e:
+            await progress.fail("⚠️ Ошибка при выполнении анализа")
+            logger.error(f"Async AI analysis failed: {e}")
+            return fallback_message or M.ERRORS.AI_GENERIC
+        finally:
+            # Завершаем прогресс
+            await progress.finish()
+        
+        return result
     
     @staticmethod
     async def safe_analysis(

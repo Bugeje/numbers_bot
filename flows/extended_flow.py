@@ -60,7 +60,8 @@ class ExtendedProfileFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMi
             "name": context.user_data["name"],
             "birthdate": context.user_data["birthdate"],
             "extended": context.user_data["extended_profile"],
-            "analysis_ext": ai_analysis or M.ERRORS.AI_GENERIC
+            "analysis_ext": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:

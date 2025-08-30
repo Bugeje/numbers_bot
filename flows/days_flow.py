@@ -108,7 +108,7 @@ class DaysFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
             "name": user_data["name"],
             "birthdate": user_data["birthdate"],
             "profile": user_data["core_profile"],
-            "filename": user_data["output_path"],  # Будет установлено в generate_and_send_pdf
+            "filename": "",  # Will be set by the base class
             "personal_calendar": user_data["calendar"],
             "calendar_month": str(user_data["month"]),
             "calendar_year": str(user_data["year"]),

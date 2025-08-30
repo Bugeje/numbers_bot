@@ -3,6 +3,7 @@ from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from helpers import MessageManager, parse_and_normalize, M, BTN
+from helpers.background_tasks import get_background_task_manager
 
 from .profile_flow import show_core_profile
 from .states import State
@@ -26,12 +27,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Создаем новый MessageManager после очистки, чтобы инициализировать пустой список
     msg_manager = MessageManager(context)
     
+    # Отправляем сообщение немедленно, чтобы не блокировать пользователя
     await msg_manager.send_and_track(
         update,
         M.HINTS.ASK_NAME_FULL,
         reply_markup=START_KEYBOARD,
     )
+    
+    # Выполняем дополнительную инициализацию в фоне
+    task_manager = await get_background_task_manager()
+    await task_manager.submit_task(_initialize_user_session, context)
+    
     return State.ASK_NAME
+
+
+async def _initialize_user_session(context: ContextTypes.DEFAULT_TYPE):
+    """Initialize user session in background."""
+    # Здесь можно выполнить любую длительную инициализацию
+    # без блокировки пользователя
+    pass
 
 
 async def save_name_and_ask_birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

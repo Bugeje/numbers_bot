@@ -6,13 +6,14 @@
 
 import tempfile
 import os
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Callable
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from helpers import run_blocking, M, FILENAMES
+from helpers import run_blocking, M, FILENAMES, generate_pdf_async
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 from helpers.ai_analyzer import AIAnalyzer
 
@@ -100,8 +101,17 @@ class BasePDFFlow(ABC):
             pdf_data = await self.generate_pdf_data(context, ai_analysis)
             pdf_generator = self.get_pdf_generator()
             
-            # Генерируем PDF
-            await run_blocking(pdf_generator, **pdf_data, output_path=output_path)
+            # Handle different parameter names for output path
+            if "output_path" in pdf_data:
+                pdf_data["output_path"] = output_path
+            elif "filename" in pdf_data:
+                pdf_data["filename"] = output_path
+            else:
+                # Add output_path to the data for functions that expect it
+                pdf_data["output_path"] = output_path
+
+            # Генерируем PDF через очередь
+            result_path = await generate_pdf_async(pdf_generator, priority=5, timeout=120.0, **pdf_data)
 
             await progress.set(M.PROGRESS.SENDING_ONE)
             await action_upload(update.effective_chat)
@@ -121,8 +131,11 @@ class BasePDFFlow(ABC):
                 pass
 
             await progress.finish()
-        except Exception:
+        except Exception as e:
             await progress.fail(M.ERRORS.PDF_FAIL)
+            # Log the error for debugging
+            logger = logging.getLogger(__name__)
+            logger.error(f"PDF generation failed: {e}", exc_info=True)
 
     async def start_ai_progress(self, update: Update) -> Progress:
         """Стандартный прогресс для AI анализа."""

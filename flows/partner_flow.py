@@ -85,12 +85,13 @@ class PartnerFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
         user_data = context.user_data
         return {
             "name_a": user_data["name"],
-            "birth_a": user_data["birthdate"],
+            "birthdate_a": user_data["birthdate"],
             "profile_a": user_data["core_profile"],
             "name_b": user_data["partner_name"],
-            "birth_b": user_data["partner_birthdate"],
+            "birthdate_b": user_data["partner_birthdate"],
             "profile_b": user_data["partner_profile"],
-            "interpretation": ai_analysis or M.ERRORS.AI_GENERIC
+            "interpretation": ai_analysis or M.ERRORS.AI_GENERIC,
+            "output_path": ""  # Will be set by the base class
         }
     
     def get_pdf_generator(self) -> Callable:
@@ -115,9 +116,6 @@ async def request_partner_name(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохранение имени партнера и запрос даты рождения."""
-    if not context.user_data.get("selecting_partner"):
-        return
-
     # Очищаем промпт о вводе имени
     msg_manager = MessageManager(context)
     await msg_manager.cleanup_tracked_messages()
@@ -128,6 +126,7 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
         M.HINTS.ASK_PARTNER_BIRTHDATE
     )
 
+    # Return the correct state to continue the conversation flow
     return State.ASK_PARTNER_BIRTHDATE
 
 
