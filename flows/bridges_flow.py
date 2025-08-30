@@ -7,10 +7,10 @@ from telegram.ext import ContextTypes, ConversationHandler
 from intelligence import get_bridges_analysis
 from calc.extended import calculate_bridges
 from output import generate_bridges_pdf
-from interface import build_after_analysis_keyboard
 from helpers import run_blocking
 from helpers.messages import M, FILENAMES
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
+from helpers.keyboards import build_after_analysis_keyboard
 
 
 async def send_bridges_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):

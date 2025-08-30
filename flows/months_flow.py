@@ -11,7 +11,8 @@ from calc import calculate_core_profile
 from intelligence import get_months_year_analysis
 from output import create_months_year_report_pdf
 from interface import ASK_MONTHS_YEAR_PROMPT, SELECT_MONTHS_YEAR, build_after_analysis_keyboard
-from helpers import M, MessageManager, Progress, action_typing, action_upload, run_blocking, parse_year, FILENAMES, BTN
+from helpers import M, MessageManager, Progress, action_typing, action_upload, run_blocking, FILENAMES, BTN
+from helpers.data_validator import DataValidator
 
 from .base import start
 
@@ -32,17 +33,14 @@ async def ask_months_year_start(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def receive_months_year_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка ввода года для анализа месяцев."""
-    try:
-        year = parse_year(update.message.text)
-        context.user_data["months_target_year"] = year
-        return await send_months_pdf(update, context)
-    except Exception as e:
-        await M.send_auto_delete_error(
-            update, context, 
-            f"{M.ERRORS.DATE_PREFIX}{e}\n{ASK_MONTHS_YEAR_PROMPT}", 
-            parse_mode="Markdown"
-        )
+    # Use DataValidator for year validation
+    success, year = await DataValidator.validate_year_data(update, context)
+    if not success:
+        # If validation failed, send error and stay in the same state
         return SELECT_MONTHS_YEAR
+    
+    context.user_data["months_target_year"] = year
+    return await send_months_pdf(update, context)
 
 
 
@@ -56,10 +54,12 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     core_profile = context.user_data.get("core_profile")
     target_year = context.user_data.get("months_target_year")
 
-    if not name or not birthdate:
-        await M.send_auto_delete_error(update, context, M.HINTS.MISSING_BASIC_DATA)
+    # Use DataValidator for basic profile validation
+    profile_validation_result = await DataValidator.validate_basic_profile(update, context)
+    success, validated_data = profile_validation_result
+    if not success:
         return ConversationHandler.END
-        
+
     if not target_year:
         await M.send_auto_delete_error(update, context, M.HINTS.MISSING_YEAR)
         return ConversationHandler.END
@@ -165,4 +165,3 @@ months_conversation_handler = ConversationHandler(
     },
     fallbacks=[MessageHandler(filters.Regex(f"^{re.escape(BTN.RESTART)}$"), start)],
 )
-

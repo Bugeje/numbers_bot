@@ -7,8 +7,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 from intelligence import get_extended_analysis
 from calc.extended import calculate_extended_profile
 from output import generate_extended_pdf
-from interface import build_after_analysis_keyboard
 from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
+from helpers.keyboards import build_after_analysis_keyboard
 
 
 async def show_extended_only_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):

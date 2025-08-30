@@ -6,8 +6,9 @@ from telegram.ext import ContextTypes, ConversationHandler
 from intelligence import get_compatibility_interpretation
 from calc import calculate_core_profile
 from output import generate_partner_pdf
-from interface import build_after_analysis_keyboard
 from helpers import M, MessageManager, Progress, action_typing, action_upload, parse_and_normalize, run_blocking, FILENAMES
+from helpers.data_validator import DataValidator
+from helpers.keyboards import build_after_analysis_keyboard
 
 from .states import State
 
@@ -44,14 +45,13 @@ async def receive_partner_birthdate_text(update: Update, context: ContextTypes.D
     msg_manager = MessageManager(context)
     await msg_manager.cleanup_tracked_messages()
     
-    try:
-        date_str = (update.message.text or "").strip()
-        normalized = parse_and_normalize(date_str)
-        context.user_data["partner_birthdate"] = normalized
-        return await generate_compatibility(update, context)
-    except Exception as e:
-        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}{e}\n{M.HINTS.RETRY_PARTNER_DATE}")
+    # Use DataValidator for birthdate validation
+    success, normalized = await DataValidator.validate_birthdate(update, context, raw_date=update.message.text.strip())
+    if not success:
         return State.ASK_PARTNER_BIRTHDATE
+    
+    context.user_data["partner_birthdate"] = normalized
+    return await generate_compatibility(update, context)
 
 
 async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -63,8 +63,13 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
         name_b = context.user_data["partner_name"]
         birth_b = context.user_data.get("partner_birthdate")
 
+        # Use DataValidator to validate partner birthdate
         if not birth_b and update.message:
-            birth_b = update.message.text.strip()
+            # Validate the birthdate from update.message.text
+            success, validated_birth_b = await DataValidator.validate_birthdate(update, context)
+            if not success:
+                return State.ASK_PARTNER_BIRTHDATE
+            birth_b = validated_birth_b
             context.user_data["partner_birthdate"] = birth_b
         elif not birth_b:
             await M.send_auto_delete_error(update, context, M.HINTS.MISSING_PARTNER_DATA)

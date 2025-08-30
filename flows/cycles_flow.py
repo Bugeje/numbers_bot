@@ -9,8 +9,8 @@ from calc.cycles import (
 )
 from intelligence import get_cycles_analysis
 from output import generate_cycles_pdf
-from interface import build_after_analysis_keyboard
 from helpers import PRESETS, M, FILENAMES, MessageManager, Progress, action_typing, action_upload, run_blocking
+from helpers.keyboards import build_after_analysis_keyboard
 
 
 async def show_cycles_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -9,3 +9,8 @@ from .monitoring import get_performance_monitor, cleanup_performance_monitor
 from .pdf_queue import get_pdf_queue, cleanup_pdf_queue, generate_pdf_async
 from .progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 from .validation import normalize_name
+
+# Новые модули для рефакторинга
+from .data_validator import DataValidator, ValidationResult
+from .ai_analyzer import AIAnalyzer, CachedAIAnalyzer, analysis_cache
+from .pdf_flow_base import BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin

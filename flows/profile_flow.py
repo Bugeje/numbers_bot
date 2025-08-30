@@ -8,7 +8,6 @@ from telegram.ext import ContextTypes, ConversationHandler
 from intelligence import get_ai_analysis
 from calc import calculate_core_profile
 from output import generate_core_pdf
-from interface import build_after_analysis_keyboard
 from helpers import (
     PRESETS,
     M,
@@ -17,43 +16,26 @@ from helpers import (
     Progress,
     action_typing,
     action_upload,
-    normalize_name,
-    parse_and_normalize,
     run_blocking,
 )
+from helpers.data_validator import DataValidator
+from helpers.keyboards import build_after_analysis_keyboard
 
 from .states import State
 
 
 async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Считает и показывает числа ядра личности. ИИ не вызывается."""
-    # --- validate name ---
-    try:
-        name = normalize_name(context.user_data.get("name"))
-    except Exception as e:
-        await update.effective_message.reply_text(
-            f"{M.ERRORS.NAME_PREFIX}{e}\n\n{M.HINTS.REENTER_NAME}"
-        )
+    # --- validate name using DataValidator ---
+    name_validation_result = await DataValidator.validate_name(update, context)
+    success, name = name_validation_result
+    if not success:
         return State.ASK_NAME
 
-    # --- validate birthdate ---
-    raw_birthdate = (
-        update.message.text.strip() if update.message else context.user_data.get("birthdate")
-    )
-    try:
-        birthdate = parse_and_normalize(raw_birthdate)
-        # защита от будущей даты (если удалось распарсить в ДД.ММ.ГГГГ)
-        try:
-            dt = datetime.strptime(birthdate, "%d.%m.%Y")
-            if dt.date() > datetime.now().date():
-                raise ValueError(M.ERRORS.DATE_FUTURE)
-        except ValueError:
-            # если формат иной — полагаемся на parse_and_normalize
-            pass
-    except Exception as e:
-        await update.effective_message.reply_text(
-            f"{M.ERRORS.DATE_PREFIX}{e}\n\n{M.DATE_FORMATS_NOTE}\n{M.HINTS.REENTER_DATE}"
-        )
+    # --- validate birthdate using DataValidator ---
+    birthdate_validation_result = await DataValidator.validate_birthdate(update, context)
+    success, birthdate = birthdate_validation_result
+    if not success:
         return State.ASK_BIRTHDATE
 
     # сохранить нормализованную дату
