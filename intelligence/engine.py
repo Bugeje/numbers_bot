@@ -26,7 +26,7 @@ async def ask_openrouter(
     """Ask OpenRouter API with proper error handling and retries."""
     temperature = settings.ai.temperature if temperature is None else temperature
     max_tokens = settings.ai.max_tokens if max_tokens is None else max_tokens
-
+    
     if not settings.ai.openrouter_api_key:
         logger.error("Missing OpenRouter API key")
         return M.ERRORS.AI_NO_KEY

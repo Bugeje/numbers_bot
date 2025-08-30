@@ -8,6 +8,7 @@ import logging
 import re
 
 from config import settings
+from helpers import M  # Переносим сюда
 
 
 async def error_handler(update, context):
@@ -70,7 +71,7 @@ def main():
             show_extended_only_profile,
             start,
         )
-        from helpers import BTN, M
+        from helpers import BTN
         
         # Создаем HTTP клиент
         request = HTTPXRequest(

@@ -7,6 +7,7 @@ from .engine import ask_openrouter
 from .prompts import (
     bridges_prompt,
     compatibility_prompt,
+    cycles_prompt,
     days_prompt,
     extended_prompt,
     months_year_prompt,
@@ -106,6 +107,23 @@ async def get_calendar_analysis(
             gradients=gradients,
             fusion_groups=fusion_groups,
         ),
+        temperature=settings.ai.temperature,
+        max_tokens=settings.ai.max_tokens,
+    )
+
+
+async def get_cycles_analysis(
+    name: str,
+    birthdate: str,
+    life_path: str,
+    personal_years: list,
+    pinnacles: list,
+    personal_year_blocks: dict
+) -> str:
+    """Получить ИИ анализ жизненных циклов."""
+    return await ask_openrouter(
+        SYSTEM_PROMPTS["cycles"],
+        cycles_prompt(name, birthdate, life_path, personal_years, pinnacles, personal_year_blocks),
         temperature=settings.ai.temperature,
         max_tokens=settings.ai.max_tokens,
     )

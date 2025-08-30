@@ -145,9 +145,10 @@ async def send_months_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
-    await update.effective_message.reply_text(
-        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
+    msg_manager = MessageManager(context)
+    await msg_manager.send_navigation_message(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     return ConversationHandler.END

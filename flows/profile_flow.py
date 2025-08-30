@@ -75,9 +75,9 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         M.format_core_summary(name, birthdate, profile), parse_mode="Markdown"
     )
     
-    # Отправляем навигационное сообщение (НЕ трекаем - это постоянная навигация)
-    await update.effective_message.reply_text(
-        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем навигационное сообщение (трекаем для последующей очистки)
+    await msg_manager.send_navigation_message(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
 
     # остаёмся в режиме ожидания кнопок (в т.ч. «Ядро личности» для ИИ+PDF)
@@ -139,8 +139,9 @@ async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_
     except Exception:
         await progress.fail(M.ERRORS.PDF_FAIL)
 
-    # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
-    await update.effective_message.reply_text(
-        M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+    # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
+    msg_manager = MessageManager(context)
+    await msg_manager.send_navigation_message(
+        update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
     )
     return State.EXTENDED_ANALYSIS

@@ -23,13 +23,15 @@ class MessageManager:
         self.context = context
         if "auto_delete_messages" not in context.user_data:
             context.user_data["auto_delete_messages"] = []
+        if "navigation_message_id" not in context.user_data:
+            context.user_data["navigation_message_id"] = None
     
     def track_message(self, message: Message) -> None:
         """Track a message for auto-deletion."""
         self.context.user_data["auto_delete_messages"].append(message.message_id)
     
     async def cleanup_tracked_messages(self) -> None:
-        """Delete all tracked messages."""
+        """Delete all tracked messages and previous navigation message."""
         message_ids = self.context.user_data.get("auto_delete_messages", [])
         for msg_id in message_ids:
             try:
@@ -42,6 +44,18 @@ class MessageManager:
         
         # Clear the tracking list
         self.context.user_data["auto_delete_messages"] = []
+        
+        # Clean up previous navigation message if exists
+        nav_msg_id = self.context.user_data.get("navigation_message_id")
+        if nav_msg_id:
+            try:
+                await self.context.bot.delete_message(
+                    chat_id=self.context._chat_id,
+                    message_id=nav_msg_id
+                )
+            except Exception:
+                pass  # Message might already be deleted
+            self.context.user_data["navigation_message_id"] = None
     
     async def send_and_track(self, update: Update, text: str, **kwargs) -> Message:
         """Send a message and automatically track it for deletion."""
@@ -58,6 +72,13 @@ class MessageManager:
         if delete_after:
             asyncio.create_task(self._auto_delete_message(msg, delete_after))
         
+        return msg
+    
+    async def send_navigation_message(self, update: Update, text: str, **kwargs) -> Message:
+        """Send a navigation message and track it for cleanup (but don't auto-delete)."""
+        msg = await update.effective_message.reply_text(text, **kwargs)
+        # Store the navigation message ID for cleanup when starting new flows
+        self.context.user_data["navigation_message_id"] = msg.message_id
         return msg
     
     async def _auto_delete_message(self, message: Message, delay: float) -> None:

@@ -122,9 +122,9 @@ async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_T
 
         # Отправляем навигационное сообщение с трекингом для автоудаления
         msg_manager = MessageManager(context)
-        # Отправляем новое навигационное сообщение (НЕ трекаем - это постоянная навигация)
-        await update.effective_message.reply_text(
-            M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
+        # Отправляем новое навигационное сообщение (трекаем для последующей очистки)
+        await msg_manager.send_navigation_message(
+            update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
         )
 
         return ConversationHandler.END

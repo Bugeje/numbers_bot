@@ -45,5 +45,12 @@
   </div>
   {% endif %}
 
+  {% if show_ai_block %}
+  <div class="block">
+    <span class="label">🧠 Интерпретация от ИИ:</span>
+    <div class="ai-block">{{ ai_analysis }}</div>
+  </div>
+  {% endif %}
+
 </body>
 </html>
