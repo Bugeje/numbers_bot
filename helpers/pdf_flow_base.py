@@ -17,6 +17,8 @@ from helpers import run_blocking, M, FILENAMES, generate_pdf_async
 from helpers.progress import PRESETS, MessageManager, Progress, action_typing, action_upload
 from helpers.ai_analyzer import AIAnalyzer
 
+# Set up logging
+logger = logging.getLogger(__name__)
 
 class BasePDFFlow(ABC):
     """
@@ -34,23 +36,30 @@ class BasePDFFlow(ABC):
     
     async def execute(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         """Основной метод выполнения flow."""
+        logger.info(f"Starting PDF flow execution for {self.filename}")
         # 1. Очистка предыдущих сообщений
         msg_manager = MessageManager(context)
         await msg_manager.cleanup_tracked_messages()
         
         # 2. Валидация данных
+        logger.info("Validating data")
         validation_result = await self.validate_data(update, context)
         if validation_result != ConversationHandler.END:
+            logger.info(f"Validation failed, returning state: {validation_result}")
             return validation_result
         
         # 3. AI анализ (если требуется)
         ai_analysis = None
         progress = None
         if self.requires_ai:
+            logger.info("Performing AI analysis with progress")
             ai_analysis, progress = await self.perform_ai_analysis_with_progress(update, context)
+            logger.info("AI analysis completed")
         
         # 4. Генерация и отправка PDF
+        logger.info("Generating and sending PDF")
         await self.generate_and_send_pdf(update, context, ai_analysis, progress)
+        logger.info("PDF generation and sending completed")
         
         # 5. Финальная навигация
         # Импортируем локально чтобы избежать циклического импорта
@@ -58,6 +67,7 @@ class BasePDFFlow(ABC):
         await msg_manager.send_navigation_message(
             update, M.HINTS.NEXT_STEP, reply_markup=build_after_analysis_keyboard()
         )
+        logger.info("Navigation message sent")
         
         return ConversationHandler.END
     
@@ -73,10 +83,13 @@ class BasePDFFlow(ABC):
     
     async def perform_ai_analysis_with_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> tuple[str, Progress]:
         """Выполнение AI анализа с прогрессом. Возвращает (результат анализа, объект прогресса)."""
+        logger.info("Performing AI analysis with progress tracking")
         # Используем AIAnalyzer для унифицированной обработки с прогрессом
-        return await AIAnalyzer.analysis_with_progress(
+        result = await AIAnalyzer.analysis_with_progress(
             update, self.perform_ai_analysis, update, context
         )
+        logger.info("AI analysis with progress completed")
+        return result
     
     @abstractmethod
     async def generate_pdf_data(self, context: ContextTypes.DEFAULT_TYPE, ai_analysis: Optional[str]) -> Dict[str, Any]:
@@ -96,6 +109,7 @@ class BasePDFFlow(ABC):
         ai_progress: Optional[Progress] = None
     ):
         """Унифицированная логика генерации и отправки PDF."""
+        logger.info("Starting PDF generation and send process")
         
         # Используем существующий AI прогресс или создаем новый
         progress = ai_progress
@@ -108,10 +122,13 @@ class BasePDFFlow(ABC):
         try:
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 output_path = tmp.name
+            logger.info(f"Created temporary file: {output_path}")
 
             # Получаем данные для PDF
             pdf_data = await self.generate_pdf_data(context, ai_analysis)
+            logger.info(f"PDF data prepared: {list(pdf_data.keys())}")
             pdf_generator = self.get_pdf_generator()
+            logger.info(f"PDF generator function: {pdf_generator.__name__}")
             
             # Handle different parameter names for output path
             if "output_path" in pdf_data:
@@ -123,29 +140,44 @@ class BasePDFFlow(ABC):
                 pdf_data["output_path"] = output_path
 
             # Генерируем PDF через очередь
-            result_path = await generate_pdf_async(pdf_generator, priority=5, timeout=120.0, **pdf_data)
+            logger.info("Submitting PDF generation job to queue")
+            try:
+                result_path = await generate_pdf_async(pdf_generator, priority=5, timeout=120.0, **pdf_data)
+                logger.info(f"PDF generated at: {result_path}")
+            except Exception as e:
+                logger.error(f"PDF generation failed in queue: {e}", exc_info=True)
+                raise
 
             # Отправляем PDF без сообщения об успешной генерации
-            with open(output_path, "rb") as pdf_file:
-                await update.effective_message.reply_document(
-                    document=pdf_file, 
-                    filename=self.filename
-                )
+            try:
+                with open(output_path, "rb") as pdf_file:
+                    await update.effective_message.reply_document(
+                        document=pdf_file, 
+                        filename=self.filename
+                    )
+                logger.info("PDF sent to user")
+            except Exception as e:
+                logger.error(f"Failed to send PDF to user: {e}", exc_info=True)
+                raise
 
             # Удаляем временный файл
             try:
                 os.unlink(output_path)
-            except Exception:
-                pass
+                logger.info("Temporary file deleted")
+            except Exception as e:
+                logger.warning(f"Failed to delete temporary file: {e}")
 
             # Завершаем прогресс (удаляем сообщение без показа "отчет готов")
             await progress.cleanup()
+            logger.info("Progress cleanup completed")
         except Exception as e:
+            logger.error(f"PDF generation failed: {e}", exc_info=True)
             await progress.fail(M.PROGRESS.FAIL)
             # Log the error for debugging
-            logger = logging.getLogger(__name__)
             logger.error(f"PDF generation failed: {e}", exc_info=True)
-
+            # Re-raise the exception so it can be handled upstream
+            raise
+    
     async def start_ai_progress(self, update: Update) -> Progress:
         """Стандартный прогресс для AI анализа."""
         await action_typing(update.effective_chat)

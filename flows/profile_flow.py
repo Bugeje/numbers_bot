@@ -117,4 +117,21 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def core_profile_ai_and_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ИИ-анализ и PDF — использует рефакторинг базового класса."""
+    # Check if core profile already exists to prevent double generation
+    if "core_profile" not in context.user_data:
+        # If core profile doesn't exist, we need to generate it first
+        # This shouldn't normally happen, but let's handle it gracefully
+        try:
+            name = normalize_name(context.user_data.get("name"))
+            birthdate = context.user_data.get("birthdate")
+            if name and birthdate:
+                profile = calculate_core_profile(name, birthdate)
+                context.user_data["core_profile"] = profile
+            else:
+                await M.send_auto_delete_error(update, context, M.HINTS.MISSING_BASIC_DATA)
+                return ConversationHandler.END
+        except Exception as e:
+            await M.send_auto_delete_error(update, context, M.format_error_details(M.ERRORS.CALC_PROFILE, str(e)))
+            return ConversationHandler.END
+    
     return await core_profile_flow.execute(update, context)

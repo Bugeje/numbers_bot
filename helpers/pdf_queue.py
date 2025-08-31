@@ -130,6 +130,7 @@ class PDFGenerationQueue:
             await self._queue.put((-priority, time.time(), job))
             
         logger.debug(f"Submitted PDF job {job_id} with priority {priority}")
+        logger.debug(f"Job details - func: {func.__name__}, args: {len(args)}, kwargs keys: {list(kwargs.keys())}")
         return job
     
     async def wait_for_job(self, job: PDFJob, timeout: Optional[float] = None) -> str:
@@ -148,14 +149,17 @@ class PDFGenerationQueue:
             Exception: If job failed
         """
         try:
+            logger.debug(f"Waiting for PDF job {job.id} with timeout {timeout}")
             if timeout:
                 result = await asyncio.wait_for(job.future, timeout=timeout)
             else:
                 result = await job.future
                 
             if job.status == PDFJobStatus.FAILED:
+                logger.error(f"PDF job {job.id} failed with error: {job.error}")
                 raise Exception(f"PDF generation failed: {job.error}")
             
+            logger.debug(f"PDF job {job.id} completed successfully")
             return result
         except asyncio.TimeoutError:
             logger.warning(f"PDF job {job.id} timed out after {timeout}s")
@@ -270,11 +274,16 @@ class PDFGenerationQueue:
         job.started_at = time.time()
         
         logger.debug(f"Worker {worker_name} processing job {job.id}")
+        logger.debug(f"Job function: {job.func.__name__}")
+        logger.debug(f"Job args count: {len(job.args)}")
+        logger.debug(f"Job kwargs keys: {list(job.kwargs.keys())}")
         
         try:
             # Execute the PDF generation function in a thread
             # The PDF queue has its own worker system, so we don't need the concurrency manager semaphore
+            logger.debug(f"Executing PDF generation function for job {job.id}")
             result = await asyncio.to_thread(job.func, *job.args, **job.kwargs)
+            logger.debug(f"PDF generation function completed for job {job.id}")
             
             job.result = result
             job.status = PDFJobStatus.COMPLETED
@@ -290,6 +299,7 @@ class PDFGenerationQueue:
             logger.debug(f"Job {job.id} completed in {job.duration:.2f}s")
         
         except Exception as e:
+            logger.error(f"Job {job.id} failed: {e}", exc_info=True)
             job.error = str(e)
             job.status = PDFJobStatus.FAILED
             job.completed_at = time.time()
@@ -405,6 +415,11 @@ async def generate_pdf_async(
     Returns:
         str: Path to generated PDF
     """
+    logger.debug(f"Generating PDF async - func: {func.__name__}, priority: {priority}, timeout: {timeout}")
+    logger.debug(f"Args count: {len(args)}, kwargs keys: {list(kwargs.keys())}")
     queue = await get_pdf_queue()
     job = await queue.submit_job(func, *args, priority=priority, **kwargs)
-    return await queue.wait_for_job(job, timeout=timeout)
+    logger.debug(f"Job submitted: {job.id}")
+    result = await queue.wait_for_job(job, timeout=timeout)
+    logger.debug(f"PDF generation completed successfully")
+    return result
