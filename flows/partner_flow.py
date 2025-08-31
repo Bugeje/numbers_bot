@@ -44,7 +44,7 @@ class PartnerFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
             await M.send_auto_delete_error(update, context, M.HINTS.MISSING_PARTNER_DATA)
             return ConversationHandler.END
 
-        # Валидируем дату рождения партнера, если она еще не валидирована
+        # Если дата рождения партнера еще не введена, но у нас есть сообщение с ней
         if not birth_b and update.message:
             success, validated_birth_b = await DataValidator.validate_birthdate(
                 update, context, raw_date=update.message.text.strip()
@@ -54,6 +54,7 @@ class PartnerFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
             birth_b = validated_birth_b
             user_data["partner_birthdate"] = birth_b
         elif not birth_b:
+            # Если дата рождения партнера не введена и нет сообщения с ней
             await M.send_auto_delete_error(update, context, M.HINTS.MISSING_PARTNER_DATA)
             return ConversationHandler.END
 
@@ -126,6 +127,7 @@ async def save_partner_name_and_ask_birthdate(update: Update, context: ContextTy
     await msg_manager.cleanup_tracked_messages()
 
     context.user_data["partner_name"] = update.message.text.strip()
+    
     await msg_manager.send_and_track(
         update,
         M.HINTS.ASK_PARTNER_BIRTHDATE
@@ -149,6 +151,7 @@ async def receive_partner_birthdate_text(update: Update, context: ContextTypes.D
         return State.ASK_PARTNER_BIRTHDATE
     
     context.user_data["partner_birthdate"] = normalized
+    
     return await generate_compatibility(update, context)
 
 

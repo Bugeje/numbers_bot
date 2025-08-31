@@ -67,7 +67,7 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = normalize_name(context.user_data.get("name"))
     except Exception as e:
         await update.effective_message.reply_text(
-            f"{M.ERRORS.NAME_PREFIX}{e}\n\n{M.HINTS.REENTER_NAME}"
+            f"{M.ERRORS.NAME_PREFIX}{e}\n\n{M.HINTS.ASK_NAME_FULL}"
         )
         return State.ASK_NAME
 
@@ -86,7 +86,7 @@ async def show_core_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
     except Exception as e:
         await update.effective_message.reply_text(
-            f"{M.ERRORS.DATE_PREFIX}{e}\n\n{M.DATE_FORMATS_NOTE}\n{M.HINTS.REENTER_DATE}"
+            f"{M.ERRORS.DATE_PREFIX}{e}\n\n{M.DATE_FORMATS_NOTE}\n{M.HINTS.ASK_BIRTHDATE_COMPACT}"
         )
         return State.ASK_BIRTHDATE
 

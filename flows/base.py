@@ -78,5 +78,5 @@ async def receive_birthdate_text(
         # переиспользуем существующий сценарий показа профиля
         return await show_core_profile(update, context)
     except Exception as e:
-        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}{e}\n{M.HINTS.RETRY_DATE}")
+        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}{e}\n{M.HINTS.ASK_BIRTHDATE_COMPACT}")
         return State.ASK_BIRTHDATE

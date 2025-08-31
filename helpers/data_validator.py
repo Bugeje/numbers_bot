@@ -29,7 +29,7 @@ class DataValidator:
             return True, name
         except Exception as e:
             await update.effective_message.reply_text(
-                f"{M.ERRORS.NAME_PREFIX}{e}\n\n{M.HINTS.REENTER_NAME}"
+                f"{M.ERRORS.NAME_PREFIX}{e}\n\n{M.HINTS.ASK_NAME_FULL}"
             )
             return False, None
     
@@ -64,7 +64,7 @@ class DataValidator:
             return True, birthdate
         except Exception as e:
             await update.effective_message.reply_text(
-                f"{M.ERRORS.DATE_PREFIX}{e}\n\n{M.DATE_FORMATS_NOTE}\n{M.HINTS.REENTER_DATE}"
+                f"{M.ERRORS.DATE_PREFIX}{e}\n\n{M.DATE_FORMATS_NOTE}\n{M.HINTS.ASK_BIRTHDATE_COMPACT}"
             )
             return False, None
     

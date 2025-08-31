@@ -144,11 +144,12 @@ class Progress:
         return await coro  # ждём без дополнительных правок сообщения
 
     async def finish(
-        self, text: str = "✅ Отчёт готов!", delete_after: float | None = 2.0
+        self, text: str = "", delete_after: float | None = 2.0
     ) -> None:
         """Finish progress with success message and auto-delete."""
         try:
-            await self.message.edit_text(text)
+            if text:
+                await self.message.edit_text(text)
             if delete_after:
                 await asyncio.sleep(delete_after)
                 await self.message.delete()

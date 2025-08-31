@@ -125,9 +125,6 @@ class BasePDFFlow(ABC):
             # Генерируем PDF через очередь
             result_path = await generate_pdf_async(pdf_generator, priority=5, timeout=120.0, **pdf_data)
 
-            await progress.set(M.PROGRESS.AI_LABEL)  # Using AI_LABEL as a generic progress message
-            await action_upload(update.effective_chat)
-
             # Отправляем PDF без сообщения об успешной генерации
             with open(output_path, "rb") as pdf_file:
                 await update.effective_message.reply_document(
@@ -141,8 +138,8 @@ class BasePDFFlow(ABC):
             except Exception:
                 pass
 
-            # Завершаем прогресс (удаляем сообщение)
-            await progress.finish()
+            # Завершаем прогресс (удаляем сообщение без показа "отчет готов")
+            await progress.cleanup()
         except Exception as e:
             await progress.fail(M.PROGRESS.FAIL)
             # Log the error for debugging

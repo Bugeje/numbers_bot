@@ -127,6 +127,14 @@ def main():
         # Глобальные обработчики - делаем их более специфичными чтобы они не мешали conversation states
         # Они будут срабатывать только когда нет активной conversation
         app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.CORE)}$") & filters.ChatType.PRIVATE,
+            core_profile_ai_and_pdf
+        ), group=2)
+        app.add_handler(MessageHandler(
+            filters.Regex(f"^{re.escape(BTN.PARTNER)}$") & filters.ChatType.PRIVATE,
+            request_partner_name
+        ), group=2)
+        app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.EXTENDED)}$") & filters.ChatType.PRIVATE,
             show_extended_only_profile
         ), group=2)
