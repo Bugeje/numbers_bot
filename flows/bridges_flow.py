@@ -42,15 +42,13 @@ class BridgesFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
                 bridges = calculate_bridges(core_profile)
                 user_data["bridges"] = bridges
             except Exception as e:
-                await M.send_auto_delete_error(update, context, f"{M.ERRORS.CALC_PROFILE}\n{M.HINTS.CALC_CORE_FIRST}")
+                await M.send_auto_delete_error(update, context, f"{M.ERRORS.CALC_PROFILE}\nСначала рассчитаем ядро личности.")
                 return ConversationHandler.END
                 
         return ConversationHandler.END
     
     async def perform_ai_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """AI анализ для bridges."""
-        progress = await self.start_ai_progress(update)
-        
         bridges = context.user_data["bridges"]
         analysis = await self.safe_ai_analysis(get_bridges_analysis, bridges)
         

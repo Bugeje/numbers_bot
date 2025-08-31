@@ -35,14 +35,9 @@ class CoreProfileFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin)
     
     async def perform_ai_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """AI анализ для core profile."""
-        # Используем асинхронный AI анализ для предотвращения блокировки
-        from helpers.ai_analyzer import AIAnalyzer
+        # Используем стандартный AI анализ который будет обработан базовым классом
         profile = context.user_data["core_profile"]
-        analysis = await AIAnalyzer.async_analysis(
-            update,
-            get_ai_analysis, 
-            profile
-        )
+        analysis = await self.safe_ai_analysis(get_ai_analysis, profile)
         
         return analysis
     

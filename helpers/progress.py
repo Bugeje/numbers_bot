@@ -11,8 +11,6 @@ from .messages import M
 PRESETS = {
     "calc_core": [M.PROGRESS.CALC_LABEL],
     "ai": [M.PROGRESS.AI_LABEL],
-    "pdf": [M.PROGRESS.PDF_ONE],
-    "sending": [M.PROGRESS.SENDING_ONE],
 }
 
 
@@ -146,7 +144,7 @@ class Progress:
         return await coro  # ждём без дополнительных правок сообщения
 
     async def finish(
-        self, text: str = M.PROGRESS.DONE, delete_after: float | None = 2.0
+        self, text: str = "✅ Отчёт готов!", delete_after: float | None = 2.0
     ) -> None:
         """Finish progress with success message and auto-delete."""
         try:

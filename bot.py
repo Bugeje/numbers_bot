@@ -41,7 +41,7 @@ def main():
     """Запуск бота с простыми настройками."""
     
     if not settings.telegram.token:
-        print(M.ERRORS.NO_TOKEN)
+        print(M.ERRORS.PREFIX + "Не найден TELEGRAM_TOKEN")
         print("Создайте файл .env и добавьте:")
         print("TELEGRAM_TOKEN=ваш_токен_здесь")
         return
@@ -126,10 +126,6 @@ def main():
         
         # Глобальные обработчики - делаем их более специфичными чтобы они не мешали conversation states
         # Они будут срабатывать только когда нет активной conversation
-        app.add_handler(MessageHandler(
-            filters.Regex(f"^{re.escape(BTN.CORE)}$") & filters.ChatType.PRIVATE,
-            core_profile_ai_and_pdf
-        ), group=2)
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.EXTENDED)}$") & filters.ChatType.PRIVATE,
             show_extended_only_profile
@@ -253,7 +249,7 @@ def main():
                 logger.error(f"Ошибка при финальной очистке: {e}")
         
     except Exception as e:
-        print(f"{M.ERRORS.STARTUP_ERROR}: {e}")
+        print(f"{M.ERRORS.PREFIX}Ошибка запуска: {e}")
         import traceback
         traceback.print_exc()
 

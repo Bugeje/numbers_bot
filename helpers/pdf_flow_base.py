@@ -45,11 +45,12 @@ class BasePDFFlow(ABC):
         
         # 3. AI анализ (если требуется)
         ai_analysis = None
+        progress = None
         if self.requires_ai:
-            ai_analysis = await self.perform_ai_analysis(update, context)
+            ai_analysis, progress = await self.perform_ai_analysis_with_progress(update, context)
         
         # 4. Генерация и отправка PDF
-        await self.generate_and_send_pdf(update, context, ai_analysis)
+        await self.generate_and_send_pdf(update, context, ai_analysis, progress)
         
         # 5. Финальная навигация
         # Импортируем локально чтобы избежать циклического импорта
@@ -70,6 +71,13 @@ class BasePDFFlow(ABC):
         """Выполнение AI анализа. Возвращает результат анализа."""
         pass
     
+    async def perform_ai_analysis_with_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> tuple[str, Progress]:
+        """Выполнение AI анализа с прогрессом. Возвращает (результат анализа, объект прогресса)."""
+        # Используем AIAnalyzer для унифицированной обработки с прогрессом
+        return await AIAnalyzer.analysis_with_progress(
+            update, self.perform_ai_analysis, update, context
+        )
+    
     @abstractmethod
     async def generate_pdf_data(self, context: ContextTypes.DEFAULT_TYPE, ai_analysis: Optional[str]) -> Dict[str, Any]:
         """Подготовка данных для генерации PDF."""
@@ -84,13 +92,17 @@ class BasePDFFlow(ABC):
         self, 
         update: Update, 
         context: ContextTypes.DEFAULT_TYPE,
-        ai_analysis: Optional[str]
+        ai_analysis: Optional[str],
+        ai_progress: Optional[Progress] = None
     ):
         """Унифицированная логика генерации и отправки PDF."""
         
-        # Прогресс: PDF
-        progress = Progress(update.effective_message)
-        await progress.set(M.PROGRESS.PDF_ONE)
+        # Используем существующий AI прогресс или создаем новый
+        progress = ai_progress
+        if progress is None:
+            progress = Progress(update.effective_message)
+            await progress.set(M.PROGRESS.AI_LABEL)  # Using AI_LABEL as a generic progress message
+        
         await action_upload(update.effective_chat)
 
         try:
@@ -113,15 +125,14 @@ class BasePDFFlow(ABC):
             # Генерируем PDF через очередь
             result_path = await generate_pdf_async(pdf_generator, priority=5, timeout=120.0, **pdf_data)
 
-            await progress.set(M.PROGRESS.SENDING_ONE)
+            await progress.set(M.PROGRESS.AI_LABEL)  # Using AI_LABEL as a generic progress message
             await action_upload(update.effective_chat)
 
-            # Отправляем PDF
+            # Отправляем PDF без сообщения об успешной генерации
             with open(output_path, "rb") as pdf_file:
                 await update.effective_message.reply_document(
                     document=pdf_file, 
-                    filename=self.filename, 
-                    caption=M.DOCUMENT_READY
+                    filename=self.filename
                 )
 
             # Удаляем временный файл
@@ -130,9 +141,10 @@ class BasePDFFlow(ABC):
             except Exception:
                 pass
 
+            # Завершаем прогресс (удаляем сообщение)
             await progress.finish()
         except Exception as e:
-            await progress.fail(M.ERRORS.PDF_FAIL)
+            await progress.fail(M.PROGRESS.FAIL)
             # Log the error for debugging
             logger = logging.getLogger(__name__)
             logger.error(f"PDF generation failed: {e}", exc_info=True)
