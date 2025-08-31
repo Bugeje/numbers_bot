@@ -33,11 +33,7 @@ def calculate_personality_number(full_name: str) -> str:
     return reduce_number(calculate_sum_by_letters(full_name, lambda ch: ch not in VOWELS))
 
 
-def calculate_destiny_number(soul: str, personality: str) -> str:
-    """Calculate destiny number from soul and personality numbers."""
-    soul_base = int(soul.split("(")[0])
-    pers_base = int(personality.split("(")[0])
-    return reduce_number(soul_base + pers_base)
+
 
 
 def calculate_core_profile(full_name: str, birthdate: str) -> dict[str, str]:
@@ -47,7 +43,6 @@ def calculate_core_profile(full_name: str, birthdate: str) -> dict[str, str]:
     expression = calculate_expression_number(full_name)
     soul = calculate_soul_number(full_name)
     personality = calculate_personality_number(full_name)
-    destiny = calculate_destiny_number(soul, personality)
 
     return {
         "life_path": life_path,
@@ -55,5 +50,4 @@ def calculate_core_profile(full_name: str, birthdate: str) -> dict[str, str]:
         "expression": expression,
         "soul": soul,
         "personality": personality,
-        "destiny": destiny,
     }

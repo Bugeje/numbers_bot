@@ -1,7 +1,6 @@
 from .profile import (
     calculate_birthday_number,
     calculate_core_profile,
-    calculate_destiny_number,
     calculate_expression_number,
     calculate_life_path_number,
     calculate_personality_number,
