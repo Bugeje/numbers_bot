@@ -120,32 +120,32 @@ def main():
         )
         
         # Добавляем conversation handler первым, чтобы он имел приоритет
-        app.add_handler(conv_handler)
-        app.add_handler(days_conversation_handler)
-        app.add_handler(months_conversation_handler)
+        app.add_handler(conv_handler, group=0)
+        app.add_handler(days_conversation_handler, group=1)
+        app.add_handler(months_conversation_handler, group=1)
         
         # Глобальные обработчики - делаем их более специфичными чтобы они не мешали conversation states
         # Они будут срабатывать только когда нет активной conversation
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.CORE)}$") & filters.ChatType.PRIVATE,
             core_profile_ai_and_pdf
-        ))
+        ), group=2)
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.EXTENDED)}$") & filters.ChatType.PRIVATE,
             show_extended_only_profile
-        ))
+        ), group=2)
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.BRIDGES)}$") & filters.ChatType.PRIVATE,
             send_bridges_pdf
-        ))
+        ), group=2)
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.CYCLES)}$") & filters.ChatType.PRIVATE,
             show_cycles_profile
-        ))
+        ), group=2)
         app.add_handler(MessageHandler(
             filters.Regex(f"^{re.escape(BTN.RESTART)}$") & filters.ChatType.PRIVATE,
             start
-        ))
+        ), group=2)
         
         # Добавляем обработчик ошибок
         app.add_error_handler(error_handler)

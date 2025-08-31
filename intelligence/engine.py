@@ -53,6 +53,8 @@ async def ask_openrouter(
         http_pool = await get_http_pool()
     except Exception as e:
         logger.error(f"Failed to get HTTP client pool: {e}")
+        if "h2" in str(e).lower():
+            return "❌ Ошибка соединения: HTTP/2 поддержка недоступна. Проверьте установку зависимостей."
         return "❌ Ошибка соединения: не удалось инициализировать HTTP клиент"
 
     delay = 0.5

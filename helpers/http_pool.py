@@ -33,6 +33,20 @@ class HTTPClientPool:
         self._current_index = 0
         self._lock = asyncio.Lock()
         self._initialized = False
+        # Check if h2 is available
+        self._http2_available = self._check_http2_support()
+    
+    def _check_http2_support(self) -> bool:
+        """Check if HTTP/2 support is available by testing h2 package import."""
+        try:
+            import h2
+            import hpack
+            import hyperframe
+            logger.info("HTTP/2 support detected")
+            return True
+        except ImportError as e:
+            logger.warning(f"HTTP/2 support not available: {e}. Falling back to HTTP/1.1")
+            return False
     
     async def _create_client(self) -> httpx.AsyncClient:
         """Create a new HTTP client with optimal settings."""
@@ -53,7 +67,7 @@ class HTTPClientPool:
             limits=limits,
             timeout=timeout,
             follow_redirects=True,
-            http2=True  # Enable HTTP/2 for better performance
+            http2=self._http2_available  # Use HTTP/2 only if available
         )
     
     async def initialize(self):
@@ -65,7 +79,8 @@ class HTTPClientPool:
             if self._initialized:
                 return
                 
-            logger.info(f"Initializing HTTP client pool with {self.pool_size} clients")
+            http_version = "HTTP/2" if self._http2_available else "HTTP/1.1"
+            logger.info(f"Initializing HTTP client pool with {self.pool_size} clients using {http_version}")
             
             for i in range(self.pool_size):
                 client = await self._create_client()

@@ -110,6 +110,11 @@ async def request_partner_name(update: Update, context: ContextTypes.DEFAULT_TYP
     await msg_manager.cleanup_tracked_messages()
     
     context.user_data["selecting_partner"] = True
+    # Clear any previous partner data
+    context.user_data.pop("partner_name", None)
+    context.user_data.pop("partner_birthdate", None)
+    context.user_data.pop("partner_profile", None)
+    
     await msg_manager.send_and_track(update, M.HINTS.ASK_PARTNER_NAME)
     return State.ASK_PARTNER_NAME
 
@@ -149,4 +154,6 @@ async def receive_partner_birthdate_text(update: Update, context: ContextTypes.D
 
 async def generate_compatibility(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Генерация совместимости — использует рефакторинг базового класса."""
+    # Clear the selecting_partner flag
+    context.user_data.pop("selecting_partner", None)
     return await partner_flow.execute(update, context)

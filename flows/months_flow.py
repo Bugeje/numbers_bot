@@ -96,10 +96,10 @@ class MonthsFlow(BasePDFFlow, StandardDataValidationMixin, AIAnalysisMixin):
         return {
             "name": user_data["name"],
             "birthdate": user_data["birthdate"],
-            "year": user_data["target_year"],
+            "target_year": user_data["target_year"],
             "personal_year": user_data["personal_year"],
             "months_data": user_data["months_data"],
-            "profile": user_data["core_profile"],
+            "core_profile": user_data["core_profile"],
             "ai_analysis": ai_analysis or M.ERRORS.AI_GENERIC,
             "output_path": ""  # Will be set by the base class
         }
@@ -129,13 +129,38 @@ async def ask_months_year_start(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def receive_months_year_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка ввода года для анализа месяцев."""
-    # Use DataValidator for year validation
-    success, year = await DataValidator.validate_year_data(update, context)
-    if not success:
-        # If validation failed, send error and stay in the same state
+    # Extract the year from the user's message
+    try:
+        year_text = update.message.text.strip()
+        # Try to parse the year - handle both full years (2025) and short years (25)
+        if len(year_text) == 2:
+            # Convert 2-digit year to 4-digit (assuming 20xx for 00-29, 19xx for 30-99)
+            year_int = int(year_text)
+            if year_int < 30:
+                year_int += 2000
+            else:
+                year_int += 1900
+        elif len(year_text) == 4:
+            year_int = int(year_text)
+        else:
+            # Try to extract a 4-digit year from the text
+            import re
+            match = re.search(r'\b(19|20)\d{2}\b', year_text)
+            if match:
+                year_int = int(match.group(0))
+            else:
+                raise ValueError("Некорректный формат года")
+        
+        # Validate year range (reasonable range)
+        current_year = datetime.now().year
+        if year_int < 1900 or year_int > current_year + 5:
+            raise ValueError(f"Год должен быть в диапазоне 1900-{current_year + 5}")
+            
+        context.user_data["months_target_year"] = year_int
+    except (ValueError, AttributeError) as e:
+        await M.send_auto_delete_error(update, context, f"{M.ERRORS.DATE_PREFIX}Некорректный год: {str(e)}")
         return SELECT_MONTHS_YEAR
     
-    context.user_data["months_target_year"] = year
     return await send_months_pdf(update, context)
 
 
