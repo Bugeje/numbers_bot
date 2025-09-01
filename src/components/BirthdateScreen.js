@@ -33,7 +33,8 @@ class BirthdateScreen {
                 const birthdate = document.getElementById('birthdate-input').value.trim();
                 if (this.app.validation.isValidDate(birthdate)) {
                     this.app.userData.birthdate = birthdate;
-                    this.app.calculations.calculateCoreProfile();
+                    // Вызываем метод calculateCoreProfile из app.js, а не из calculations
+                    this.app.calculateCoreProfile();
                 } else {
                     this.app.WebApp.showAlert('Пожалуйста, введите корректную дату рождения в формате ДД.ММ.ГГГГ');
                 }

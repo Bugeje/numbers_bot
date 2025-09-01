@@ -1,4 +1,6 @@
 // src/features/aiAnalysis.js
+import { UI } from '../utils/ui.js';
+
 class AIAnalysis {
     constructor(app) {
         this.app = app;
@@ -76,7 +78,7 @@ class AIAnalysis {
     async showInterpretation() {
         console.log('Showing interpretation...');
         if (!this.app.userData.coreProfile) {
-            this.app.WebApp.showAlert('Сначала рассчитайте основной профиль');
+            this.app.WebApp?.showAlert?.('Сначала рассчитайте основной профиль');
             return;
         }
 
@@ -89,19 +91,19 @@ class AIAnalysis {
             personality: this.app.userData.coreProfile.personality
         };
 
-        this.app.showLoading(true);
+        UI.showLoading(true, '🧠 Генерирую интерпретацию...');
         
         try {
             const analysis = await this.getAIAnalysis(normalizedProfile);
             this.app.userData.interpretation = analysis;
             
-            this.app.showLoading(false);
+            UI.showLoading(false);
             this.app.navigation.goTo('interpretation-screen');
             this.app.updateInterpretationScreen();
             console.log('Interpretation shown successfully');
         } catch (error) {
-            this.app.showLoading(false);
-            this.app.WebApp.showAlert('Ошибка при получении интерпретации.');
+            UI.showLoading(false);
+            this.app.WebApp?.showAlert?.('Ошибка при получении интерпретации.');
             console.error('AI Analysis error:', error);
         }
     }

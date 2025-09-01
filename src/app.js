@@ -9,6 +9,7 @@ import { Calculations } from './utils/calculations.js';
 import { Navigation } from './utils/navigation.js';
 import { AIAnalysis } from './features/aiAnalysis.js';
 import { Storage } from './features/storage.js';
+import { UI } from './utils/ui.js';
 
 class NumerologyApp {
     constructor() {
@@ -26,7 +27,7 @@ class NumerologyApp {
         };
         
         // Initialize Telegram WebApp
-        this.WebApp = window.Telegram.WebApp;
+        this.WebApp = window.Telegram?.WebApp;
         
         // Initialize components
         this.initComponents();
@@ -76,11 +77,14 @@ class NumerologyApp {
         this.partnerScreen.init();
         
         // Set up Telegram WebApp
-        this.WebApp.ready();
-        this.WebApp.expand();
+        this.WebApp?.ready?.();
+        this.WebApp?.expand?.();
+        
+        // Привязка темы
+        UI.bindTheme(this.WebApp);
         
         // Set header color if supported
-        if (this.WebApp.setHeaderColor) {
+        if (this.WebApp?.setHeaderColor) {
             try {
                 this.WebApp.setHeaderColor('secondary_bg_color');
             } catch (e) {
@@ -108,14 +112,14 @@ class NumerologyApp {
     
     applyThemeColors() {
         // Apply Telegram theme colors to CSS variables
-        const theme = this.WebApp.themeParams;
-        document.documentElement.style.setProperty('--tg-theme-bg-color', theme.bg_color || '#ffffff');
-        document.documentElement.style.setProperty('--tg-theme-text-color', theme.text_color || '#000000');
-        document.documentElement.style.setProperty('--tg-theme-hint-color', theme.hint_color || '#999999');
-        document.documentElement.style.setProperty('--tg-theme-link-color', theme.link_color || '#28a8ea');
-        document.documentElement.style.setProperty('--tg-theme-button-color', theme.button_color || '#28a8ea');
-        document.documentElement.style.setProperty('--tg-theme-button-text-color', theme.button_text_color || '#ffffff');
-        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', theme.secondary_bg_color || '#f1f1f1');
+        const theme = this.WebApp?.themeParams;
+        document.documentElement.style.setProperty('--tg-theme-bg-color', theme?.bg_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-text-color', theme?.text_color || '#000000');
+        document.documentElement.style.setProperty('--tg-theme-hint-color', theme?.hint_color || '#999999');
+        document.documentElement.style.setProperty('--tg-theme-link-color', theme?.link_color || '#28a8ea');
+        document.documentElement.style.setProperty('--tg-theme-button-color', theme?.button_color || '#28a8ea');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', theme?.button_text_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', theme?.secondary_bg_color || '#f1f1f1');
     }
     
     setupEventListeners() {
@@ -127,14 +131,14 @@ class NumerologyApp {
         this.partnerScreen.setupEventListeners();
         
         // Theme change event
-        this.WebApp.onEvent('themeChanged', () => {
+        this.WebApp?.onEvent?.('themeChanged', () => {
             this.applyThemeColors();
         });
     }
     
     setupBackButton() {
         // Set up back button functionality if supported
-        if (this.WebApp.BackButton) {
+        if (this.WebApp?.BackButton) {
             try {
                 this.WebApp.BackButton.onClick(() => {
                     this.navigation.goBack();
@@ -145,14 +149,38 @@ class NumerologyApp {
         }
     }
     
-    showLoading(show) {
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-            if (show) {
-                loadingElement.classList.remove('hidden');
-            } else {
-                loadingElement.classList.add('hidden');
+    async calculateCoreProfile() {
+        try {
+            UI.showLoading(true, '⚙️ Считаю… ~3–5 сек');
+            // Показать скелетоны результатов
+            document.getElementById('results-skeleton')?.classList.remove('hidden');
+            document.getElementById('results-content')?.classList.add('hidden');
+
+            // Вызываем метод расчета из Calculations
+            const coreProfile = await this.calculations.calculateCoreProfile();
+            
+            // Если расчет прошел успешно, обновляем UI
+            if (coreProfile) {
+                UI.setStatus('🧠 Формирую интерпретацию…');
+                // Имитация запроса за интерпретацией
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                // this.userData.interpretation = await this.aiAnalysis.getInterpretation(coreProfile);
+
+                // Готово — прячем скелетоны, показываем контент
+                document.getElementById('results-skeleton')?.classList.add('hidden');
+                document.getElementById('results-content')?.classList.remove('hidden');
+                
+                // Обновляем экран результатов
+                this.updateResultsScreen();
+                
+                UI.showToast('✅ Готово!', 'success');
+                this.navigation.goTo('results-screen');
             }
+        } catch (e) {
+            UI.showToast('❌ Что-то пошло не так', 'error');
+            console.error(e);
+        } finally {
+            UI.showLoading(false);
         }
     }
     

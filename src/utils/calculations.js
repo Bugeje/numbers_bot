@@ -78,56 +78,43 @@ class Calculations {
         return this.reduceNumber(this.calculateSumByLetters(fullName, char => !vowels.includes(char)));
     }
 
-    async calculateCoreProfile() {
+    calculateCoreProfile() {
         console.log('Calculating core profile...');
         const { name, birthdate } = this.app.userData;
         
         if (!name || !birthdate) {
-            this.app.WebApp.showAlert('Пожалуйста, введите имя и дату рождения');
-            return;
+            this.app.WebApp?.showAlert?.('Пожалуйста, введите имя и дату рождения');
+            return Promise.resolve();
         }
 
-        this.app.showLoading(true);
-        
         try {
-            // Call backend API for calculation
-            const response = await fetch('/api/calculate/core', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name, birthdate })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Map backend response to frontend data structure
+            // Используем локальные методы вместо API
+            const lifePath = this.calculateLifePathNumber(birthdate);
+            const birthday = this.calculateBirthdayNumber(birthdate);
+            const expression = this.calculateExpressionNumber(name);
+            const soul = this.calculateSoulNumber(name);
+            const personality = this.calculatePersonalityNumber(name);
+
+            // Формируем объект профиля
             this.app.userData.coreProfile = {
-                lifePath: data.profile.life_path,
-                birthday: data.profile.birthday,
-                expression: data.profile.expression,
-                soul: data.profile.soul,
-                personality: data.profile.personality
+                lifePath,
+                birthday,
+                expression,
+                soul,
+                personality
             };
 
-            this.app.showLoading(false);
-            this.app.navigation.goTo('results-screen');
-            this.app.updateResultsScreen();
             console.log('Core profile calculated successfully:', this.app.userData.coreProfile);
+            return Promise.resolve(this.app.userData.coreProfile);
         } catch (error) {
-            this.app.showLoading(false);
-            this.app.WebApp.showAlert('Ошибка при расчете. Пожалуйста, проверьте введенные данные.');
+            this.app.WebApp?.showAlert?.('Ошибка при расчете. Пожалуйста, проверьте введенные данные.');
             console.error('Calculation error:', error);
+            return Promise.reject(error);
         }
     }
 
     calculateExtendedProfile() {
         console.log('Calculating extended profile...');
-        this.app.showLoading(true);
         
         setTimeout(() => {
             try {
@@ -144,13 +131,11 @@ class Calculations {
                     mind
                 };
 
-                this.app.showLoading(false);
                 this.app.navigation.goTo('extended-screen');
                 this.app.updateExtendedScreen();
                 console.log('Extended profile calculated successfully:', this.app.userData.extendedProfile);
             } catch (error) {
-                this.app.showLoading(false);
-                this.app.WebApp.showAlert('Ошибка при расчете расширенного профиля.');
+                this.app.WebApp?.showAlert?.('Ошибка при расчете расширенного профиля.');
                 console.error('Extended calculation error:', error);
             }
         }, 100);
@@ -158,15 +143,13 @@ class Calculations {
 
     calculateBridges() {
         console.log('Calculating bridges...');
-        this.app.showLoading(true);
         
         setTimeout(() => {
             try {
                 const { coreProfile } = this.app.userData;
                 
                 if (!coreProfile) {
-                    this.app.showLoading(false);
-                    this.app.WebApp.showAlert('Сначала рассчитайте основной профиль');
+                    this.app.WebApp?.showAlert?.('Сначала рассчитайте основной профиль');
                     return;
                 }
 
@@ -190,13 +173,11 @@ class Calculations {
                     life_personality
                 };
 
-                this.app.showLoading(false);
                 this.app.navigation.goTo('bridges-screen');
                 this.app.updateBridgesScreen();
                 console.log('Bridges calculated successfully:', this.app.userData.bridgesProfile);
             } catch (error) {
-                this.app.showLoading(false);
-                this.app.WebApp.showAlert('Ошибка при расчете мостов.');
+                this.app.WebApp?.showAlert?.('Ошибка при расчете мостов.');
                 console.error('Bridges calculation error:', error);
             }
         }, 100);
@@ -204,15 +185,13 @@ class Calculations {
 
     calculateCycles() {
         console.log('Calculating cycles...');
-        this.app.showLoading(true);
         
         setTimeout(() => {
             try {
                 const { name, birthdate } = this.app.userData;
                 
                 if (!name || !birthdate) {
-                    this.app.showLoading(false);
-                    this.app.WebApp.showAlert('Сначала введите имя и дату рождения');
+                    this.app.WebApp?.showAlert?.('Сначала введите имя и дату рождения');
                     return;
                 }
 
@@ -227,13 +206,11 @@ class Calculations {
                     pinnacles
                 };
 
-                this.app.showLoading(false);
                 this.app.navigation.goTo('cycles-screen');
                 this.app.updateCyclesScreen();
                 console.log('Cycles calculated successfully:', this.app.userData.cyclesProfile);
             } catch (error) {
-                this.app.showLoading(false);
-                this.app.WebApp.showAlert('Ошибка при расчете циклов.');
+                this.app.WebApp?.showAlert?.('Ошибка при расчете циклов.');
                 console.error('Cycles calculation error:', error);
             }
         }, 100);
@@ -241,7 +218,6 @@ class Calculations {
 
     calculatePartnerCompatibility() {
         console.log('Calculating partner compatibility...');
-        this.app.showLoading(true);
         
         setTimeout(() => {
             try {
@@ -249,8 +225,7 @@ class Calculations {
                 const { partner } = this.app.userData;
                 
                 if (!name || !birthdate || !partner.name || !partner.birthdate) {
-                    this.app.showLoading(false);
-                    this.app.WebApp.showAlert('Пожалуйста, введите данные обоих партнеров');
+                    this.app.WebApp?.showAlert?.('Пожалуйста, введите данные обоих партнеров');
                     return;
                 }
 
@@ -276,13 +251,11 @@ class Calculations {
                     partnerB
                 };
 
-                this.app.showLoading(false);
                 this.app.navigation.goTo('compatibility-screen');
                 this.app.updateCompatibilityScreen();
                 console.log('Partner compatibility calculated successfully:', this.app.userData.compatibilityProfile);
             } catch (error) {
-                this.app.showLoading(false);
-                this.app.WebApp.showAlert('Ошибка при расчете совместимости.');
+                this.app.WebApp?.showAlert?.('Ошибка при расчете совместимости.');
                 console.error('Compatibility calculation error:', error);
             }
         }, 100);

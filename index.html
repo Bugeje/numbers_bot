@@ -12,6 +12,15 @@
     <!-- Global error display -->
     <div id="global-error" class="error-display"></div>
     
+    <!-- Global loader overlay -->
+    <div id="global-loader" class="loader">
+        <div class="spinner"></div>
+        <div id="status-text" class="status-bubble">⚙️ Считаю… ~3–5 сек</div>
+    </div>
+    
+    <!-- Toast notifications wrapper -->
+    <div id="toast-wrap" class="toast-wrap"></div>
+    
     <div class="container">
         <!-- Start Screen -->
         <div id="start-screen">
@@ -52,7 +61,18 @@
                 <div id="user-info" class="user-info"></div>
             </div>
             
-            <div class="card">
+            <!-- Results skeleton for loading state -->
+            <div id="results-skeleton" class="card hidden">
+                <div class="sk-title"></div>
+                <div class="sk-line"></div>
+                <div class="sk-line"></div>
+                <div class="sk-line"></div>
+                <div class="sk-line"></div>
+                <div class="sk-line"></div>
+            </div>
+            
+            <!-- Results content -->
+            <div id="results-content" class="card">
                 <div class="profile-item">
                     <span class="profile-label">Жизненный путь:</span>
                     <span id="life-path-value" class="profile-value">—</span>
@@ -255,7 +275,7 @@
             <button id="compatibility-back" class="button button-secondary">Назад</button>
         </div>
 
-        <!-- Loading Indicator -->
+        <!-- Old loading indicator (can be removed) -->
         <div id="loading" class="loading hidden">
             <div class="spinner"></div>
             <p>Расчет...</p>
