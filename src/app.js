@@ -187,12 +187,52 @@ class NumerologyApp {
     // Screen update methods
     updateResultsScreen() {
         if (this.userData.coreProfile) {
-            document.getElementById('life-path-value').textContent = this.userData.coreProfile.lifePath;
-            document.getElementById('birthday-value').textContent = this.userData.coreProfile.birthday;
-            document.getElementById('expression-value').textContent = this.userData.coreProfile.expression;
-            document.getElementById('soul-value').textContent = this.userData.coreProfile.soul;
-            document.getElementById('personality-value').textContent = this.userData.coreProfile.personality;
-            document.getElementById('destiny-value').textContent = this.userData.coreProfile.destiny;
+            console.log('Updating results screen with coreProfile:', this.userData.coreProfile);
+            
+            // Update Life Path
+            const lifePathElement = document.getElementById('life-path-value');
+            if (lifePathElement) {
+                // Handle both camelCase and snake_case from different sources
+                const lifePathValue = this.userData.coreProfile.lifePath || this.userData.coreProfile.life_path || '—';
+                lifePathElement.textContent = lifePathValue;
+                console.log('Life Path value set to:', lifePathValue);
+            } else {
+                console.error('Life Path element not found');
+            }
+            
+            // Update Birthday
+            const birthdayElement = document.getElementById('birthday-value');
+            if (birthdayElement) {
+                // Handle both camelCase and snake_case from different sources
+                const birthdayValue = this.userData.coreProfile.birthday || '—';
+                birthdayElement.textContent = birthdayValue;
+            }
+            
+            // Update Expression
+            const expressionElement = document.getElementById('expression-value');
+            if (expressionElement) {
+                // Handle both camelCase and snake_case from different sources
+                const expressionValue = this.userData.coreProfile.expression || '—';
+                expressionElement.textContent = expressionValue;
+            }
+            
+            // Update Soul
+            const soulElement = document.getElementById('soul-value');
+            if (soulElement) {
+                // Handle both camelCase and snake_case from different sources
+                const soulValue = this.userData.coreProfile.soul || '—';
+                soulElement.textContent = soulValue;
+            }
+            
+            // Update Personality
+            const personalityElement = document.getElementById('personality-value');
+            if (personalityElement) {
+                // Handle both camelCase and snake_case from different sources
+                const personalityValue = this.userData.coreProfile.personality || '—';
+                personalityElement.textContent = personalityValue;
+            }
+        } else {
+            console.warn('No coreProfile data available for results screen');
         }
     }
     

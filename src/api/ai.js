@@ -1,38 +1,23 @@
-// src/features/aiAnalysis.js
-class AIAnalysis {
-    constructor(app) {
-        this.app = app;
-    }
+// src/api/ai.js - API endpoints for AI analysis
+import http from 'http';
+import { get_ai_analysis } from '../../intelligence/analysis.py';
 
-    async getAIAnalysis(profile) {
+// This would be a Python endpoint, but for now we'll create a placeholder
+// In a real implementation, this would be a FastAPI or Flask endpoint that calls the Python AI functions
+
+export class AIApi {
+    static async getCoreProfileAnalysis(profile) {
+        // In a real implementation, this would make an HTTP request to a Python backend
+        // For now, we'll simulate the response
+        
+        // This is a placeholder implementation
+        // In reality, this would call the Python get_ai_analysis function through an API
         console.log('Getting AI analysis for profile:', profile);
         
-        try {
-            // Make API call to backend for AI analysis
-            const response = await fetch('/api/ai/analysis', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ profile: profile })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.analysis;
-        } catch (error) {
-            console.error('AI API error:', error);
-            // Fallback to sample analysis if API fails
-            return this.getSampleAnalysis(profile);
-        }
-    }
-
-    getSampleAnalysis(profile) {
-        console.log('Generating sample analysis for profile:', profile);
-        // This is a fallback implementation for demonstration
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Return sample analysis (in real implementation, this would come from Python AI)
         const descriptions = {
             '1': 'Это число указывает на лидерские качества и стремление к независимости.',
             '2': 'Число 2 связано с дипломатией, сотрудничеством и чувствительностью.',
@@ -72,40 +57,4 @@ class AIAnalysis {
         
         return analysis;
     }
-
-    async showInterpretation() {
-        console.log('Showing interpretation...');
-        if (!this.app.userData.coreProfile) {
-            this.app.WebApp.showAlert('Сначала рассчитайте основной профиль');
-            return;
-        }
-
-        // Normalize the coreProfile data to ensure snake_case keys for backend
-        const normalizedProfile = {
-            life_path: this.app.userData.coreProfile.lifePath || this.app.userData.coreProfile.life_path,
-            birthday: this.app.userData.coreProfile.birthday,
-            expression: this.app.userData.coreProfile.expression,
-            soul: this.app.userData.coreProfile.soul,
-            personality: this.app.userData.coreProfile.personality
-        };
-
-        this.app.showLoading(true);
-        
-        try {
-            const analysis = await this.getAIAnalysis(normalizedProfile);
-            this.app.userData.interpretation = analysis;
-            
-            this.app.showLoading(false);
-            this.app.navigation.goTo('interpretation-screen');
-            this.app.updateInterpretationScreen();
-            console.log('Interpretation shown successfully');
-        } catch (error) {
-            this.app.showLoading(false);
-            this.app.WebApp.showAlert('Ошибка при получении интерпретации.');
-            console.error('AI Analysis error:', error);
-        }
-    }
 }
-
-// Export for potential use in other modules
-export { AIAnalysis };

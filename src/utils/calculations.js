@@ -78,9 +78,7 @@ class Calculations {
         return this.reduceNumber(this.calculateSumByLetters(fullName, char => !vowels.includes(char)));
     }
 
-
-
-    calculateCoreProfile() {
+    async calculateCoreProfile() {
         console.log('Calculating core profile...');
         const { name, birthdate } = this.app.userData;
         
@@ -91,33 +89,40 @@ class Calculations {
 
         this.app.showLoading(true);
         
-        // Use setTimeout to allow UI to update before heavy calculations
-        setTimeout(() => {
-            try {
-                const lifePath = this.calculateLifePathNumber(birthdate);
-                const birthday = this.calculateBirthdayNumber(birthdate);
-                const expression = this.calculateExpressionNumber(name);
-                const soul = this.calculateSoulNumber(name);
-                const personality = this.calculatePersonalityNumber(name);
-
-                this.app.userData.coreProfile = {
-                    lifePath,
-                    birthday,
-                    expression,
-                    soul,
-                    personality
-                };
-
-                this.app.showLoading(false);
-                this.app.navigation.goTo('results-screen');
-                this.app.updateResultsScreen();
-                console.log('Core profile calculated successfully:', this.app.userData.coreProfile);
-            } catch (error) {
-                this.app.showLoading(false);
-                this.app.WebApp.showAlert('Ошибка при расчете. Пожалуйста, проверьте введенные данные.');
-                console.error('Calculation error:', error);
+        try {
+            // Call backend API for calculation
+            const response = await fetch('/api/calculate/core', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, birthdate })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
             }
-        }, 100);
+            
+            const data = await response.json();
+            
+            // Map backend response to frontend data structure
+            this.app.userData.coreProfile = {
+                lifePath: data.profile.life_path,
+                birthday: data.profile.birthday,
+                expression: data.profile.expression,
+                soul: data.profile.soul,
+                personality: data.profile.personality
+            };
+
+            this.app.showLoading(false);
+            this.app.navigation.goTo('results-screen');
+            this.app.updateResultsScreen();
+            console.log('Core profile calculated successfully:', this.app.userData.coreProfile);
+        } catch (error) {
+            this.app.showLoading(false);
+            this.app.WebApp.showAlert('Ошибка при расчете. Пожалуйста, проверьте введенные данные.');
+            console.error('Calculation error:', error);
+        }
     }
 
     calculateExtendedProfile() {
@@ -344,5 +349,5 @@ class Calculations {
     }
 }
 
-// Export the class
+// Export for potential use in other modules
 export { Calculations };

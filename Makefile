@@ -1,10 +1,11 @@
-.PHONY: install lint run fmt clean dev-setup docker-build docker-run help
+.PHONY: install lint run fmt clean dev-setup docker-build docker-run help api
 
 # Default target
 help:
 	@echo "Доступные команды:"
 	@echo "  install      - Установка зависимостей"
 	@echo "  run          - Запуск бота"
+	@echo "  api          - Запуск API сервера"
 	@echo "  lint         - Проверка кода"
 	@echo "  fmt          - Форматирование кода"
 	@echo "  clean        - Очистка временных файлов"
@@ -30,6 +31,9 @@ fmt:
 
 run:
 	. .venv/bin/activate && python3 bot.py
+
+api:
+	. .venv/bin/activate && python3 api.py
 
 run-dev:
 	. .venv/bin/activate && ENVIRONMENT=development python3 bot.py

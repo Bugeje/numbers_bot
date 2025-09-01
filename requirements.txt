@@ -7,6 +7,8 @@ weasyprint>=59.0,<60.0
 pydyf>=0.10.0,<0.11.0
 pydantic>=2.0.0,<3.0.0
 pydantic-settings>=2.0.0,<3.0.0
+fastapi>=0.100.0,<1.0.0
+uvicorn>=0.20.0,<1.0.0
 
 # Performance optimization dependencies
 h2>=4.0.0,<5.0.0  # HTTP/2 support for better AI API performance

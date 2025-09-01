@@ -9,7 +9,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
+const API_PORT = process.env.API_PORT || 5000;
 
 // MIME types for static files
 const MIME_TYPES = {
@@ -33,6 +34,12 @@ const MIME_TYPES = {
 // Create HTTP server
 const server = http.createServer((req, res) => {
   console.log(`Request received: ${req.method} ${req.url}`);
+  
+  // Handle API requests by proxying to Python backend
+  if (req.url.startsWith('/api/')) {
+    proxyRequestToPythonAPI(req, res);
+    return;
+  }
   
   // Handle the root path
   let filePath = req.url === '/' ? '/index.html' : req.url;
@@ -63,6 +70,40 @@ const server = http.createServer((req, res) => {
     }
   });
 });
+
+// Proxy API requests to Python backend
+function proxyRequestToPythonAPI(req, res) {
+  // Create the proxy request using the built-in http module
+  const options = {
+    hostname: 'localhost',
+    port: API_PORT,
+    path: req.url, // Keep the full path including /api prefix
+    method: req.method,
+    headers: { ...req.headers }
+  };
+  
+  // Remove the host header to avoid conflicts
+  delete options.headers.host;
+  
+  // Create the proxy request
+  const proxyReq = http.request(options, (proxyRes) => {
+    // Forward the response headers
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    
+    // Pipe the response data
+    proxyRes.pipe(res);
+  });
+  
+  // Handle proxy request errors
+  proxyReq.on('error', (err) => {
+    console.error('Proxy request error:', err);
+    res.writeHead(502);
+    res.end('Bad Gateway');
+  });
+  
+  // Pipe the request data
+  req.pipe(proxyReq);
+}
 
 // Handle port in use error
 server.on('error', (e) => {
