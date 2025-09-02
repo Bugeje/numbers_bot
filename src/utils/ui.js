@@ -20,19 +20,13 @@ export class UI {
     el.className = `toast ${type}`;
     el.textContent = message;
     wrap.appendChild(el);
-    // плавное исчезновение
     setTimeout(() => { el.style.opacity = '0'; el.style.transform='translateY(8px)'; }, ms - 300);
     setTimeout(() => wrap.removeChild(el), ms);
   }
 
   static bindTheme(webApp) {
     const apply = () => {
-      // Обычно достаточно переменных Telegram, но хук оставим на будущее
-      // Например, можно кастомно подстроить фон:
-      document.documentElement.style.setProperty(
-        '--bg',
-        getComputedStyle(document.body).getPropertyValue('--tg-theme-bg-color') || '#0f0f10'
-      );
+      // Можно тонко подстроить CSS‑переменные, но базово Telegram сам прокидывает тему
     };
     apply();
     webApp?.onEvent?.('themeChanged', apply);
