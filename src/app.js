@@ -11,8 +11,7 @@ import { AIAnalysis } from './features/aiAnalysis.js';
 import { Storage } from './features/storage.js';
 import { UI } from './utils/ui.js';
 
-// Import Phaser game functions
-import { mountPhaser, pausePhaser, resumePhaser, destroyPhaser } from './phaser/game.js';
+// UI animations and interactions
 
 class NumerologyApp {
     constructor() {
@@ -179,8 +178,7 @@ class NumerologyApp {
                 UI.showToast('✅ Готово!', 'success');
                 this.navigation.goTo('results-screen');
                 
-                // Mount Phaser game in the results screen
-                mountPhaser('phaser-container');
+                // UI animations and interactions
             }
         } catch (e) {
             UI.showToast('❌ Что-то пошло не так', 'error');
@@ -214,8 +212,7 @@ class NumerologyApp {
         // Save cleared data to CloudStorage
         this.storage.saveUserData();
         
-        // Destroy Phaser game if it exists
-        destroyPhaser();
+        // UI animations and interactions
         
         // Go back to start screen
         this.navigation.goTo('start-screen');
@@ -331,6 +328,8 @@ class NumerologyApp {
             document.getElementById('interpretation-content').innerHTML = this.userData.interpretation;
         }
     }
+    
+    // UI animations and interactions
 }
 
 // Export for potential use in other modules
