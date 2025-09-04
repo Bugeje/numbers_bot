@@ -1,9 +1,7 @@
 // src/features/aiAnalysis.js
-import { UI } from '../utils/ui.js';
-
 class AIAnalysis {
-    constructor(app) {
-        this.app = app;
+    constructor() {
+        // No app dependency needed for pure logic
     }
 
     async getAIAnalysis(profile) {
@@ -75,36 +73,28 @@ class AIAnalysis {
         return analysis;
     }
 
-    async showInterpretation() {
-        console.log('Showing interpretation...');
-        if (!this.app.userData.coreProfile) {
-            this.app.WebApp?.showAlert?.('Сначала рассчитайте основной профиль');
-            return;
+    async getInterpretation(coreProfile) {
+        console.log('Getting interpretation for core profile...');
+        if (!coreProfile) {
+            throw new Error('Core profile is required for interpretation');
         }
 
         // Normalize the coreProfile data to ensure snake_case keys for backend
         const normalizedProfile = {
-            life_path: this.app.userData.coreProfile.lifePath || this.app.userData.coreProfile.life_path,
-            birthday: this.app.userData.coreProfile.birthday,
-            expression: this.app.userData.coreProfile.expression,
-            soul: this.app.userData.coreProfile.soul,
-            personality: this.app.userData.coreProfile.personality
+            life_path: coreProfile.lifePath || coreProfile.life_path,
+            birthday: coreProfile.birthday,
+            expression: coreProfile.expression,
+            soul: coreProfile.soul,
+            personality: coreProfile.personality
         };
-
-        UI.showLoading(true, '🧠 Генерирую интерпретацию...');
         
         try {
             const analysis = await this.getAIAnalysis(normalizedProfile);
-            this.app.userData.interpretation = analysis;
-            
-            UI.showLoading(false);
-            this.app.navigation.goTo('interpretation-screen');
-            this.app.updateInterpretationScreen();
-            console.log('Interpretation shown successfully');
+            console.log('Interpretation generated successfully');
+            return analysis;
         } catch (error) {
-            UI.showLoading(false);
-            this.app.WebApp?.showAlert?.('Ошибка при получении интерпретации.');
             console.error('AI Analysis error:', error);
+            throw error;
         }
     }
 }

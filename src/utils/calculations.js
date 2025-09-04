@@ -1,7 +1,6 @@
 // src/utils/calculations.js
 class Calculations {
-    constructor(app) {
-        this.app = app;
+    constructor() {
         // Define master and karmic numbers to match Python implementation
         this.MASTER_NUMBERS = new Set([11, 22, 33, 44, 55, 66, 77, 88, 99]);
         this.KARMIC_NUMBERS = new Set([13, 14, 16, 19]);
@@ -78,13 +77,11 @@ class Calculations {
         return this.reduceNumber(this.calculateSumByLetters(fullName, char => !vowels.includes(char)));
     }
 
-    calculateCoreProfile() {
+    calculateCoreProfile(name, birthdate) {
         console.log('Calculating core profile...');
-        const { name, birthdate } = this.app.userData;
         
         if (!name || !birthdate) {
-            this.app.WebApp?.showAlert?.('Пожалуйста, введите имя и дату рождения');
-            return Promise.resolve();
+            throw new Error('Name and birthdate are required for core profile calculation');
         }
 
         try {
@@ -96,7 +93,7 @@ class Calculations {
             const personality = this.calculatePersonalityNumber(name);
 
             // Формируем объект профиля
-            this.app.userData.coreProfile = {
+            const coreProfile = {
                 lifePath,
                 birthday,
                 expression,
@@ -104,161 +101,138 @@ class Calculations {
                 personality
             };
 
-            console.log('Core profile calculated successfully:', this.app.userData.coreProfile);
-            return Promise.resolve(this.app.userData.coreProfile);
+            console.log('Core profile calculated successfully:', coreProfile);
+            return coreProfile;
         } catch (error) {
-            this.app.WebApp?.showAlert?.('Ошибка при расчете. Пожалуйста, проверьте введенные данные.');
             console.error('Calculation error:', error);
-            return Promise.reject(error);
+            throw error;
         }
     }
 
-    calculateExtendedProfile() {
+    calculateExtendedProfile(name, birthdate) {
         console.log('Calculating extended profile...');
         
-        setTimeout(() => {
-            try {
-                // Calculate extended numbers (balance, growth, realization, mind)
-                const balance = this.calculateBalanceNumber(this.app.userData.birthdate);
-                const growth = this.calculateGrowthNumber(this.app.userData.birthdate);
-                const realization = this.calculateRealizationNumber(this.app.userData.name);
-                const mind = this.calculateMindNumber(this.app.userData.name, this.app.userData.birthdate);
+        try {
+            // Calculate extended numbers (balance, growth, realization, mind)
+            const balance = this.calculateBalanceNumber(birthdate);
+            const growth = this.calculateGrowthNumber(birthdate);
+            const realization = this.calculateRealizationNumber(name);
+            const mind = this.calculateMindNumber(name, birthdate);
 
-                this.app.userData.extendedProfile = {
-                    balance,
-                    growth,
-                    realization,
-                    mind
-                };
+            const extendedProfile = {
+                balance,
+                growth,
+                realization,
+                mind
+            };
 
-                this.app.navigation.goTo('extended-screen');
-                this.app.updateExtendedScreen();
-                console.log('Extended profile calculated successfully:', this.app.userData.extendedProfile);
-            } catch (error) {
-                this.app.WebApp?.showAlert?.('Ошибка при расчете расширенного профиля.');
-                console.error('Extended calculation error:', error);
-            }
-        }, 100);
+            console.log('Extended profile calculated successfully:', extendedProfile);
+            return extendedProfile;
+        } catch (error) {
+            console.error('Extended calculation error:', error);
+            throw error;
+        }
     }
 
-    calculateBridges() {
+    calculateBridges(coreProfile) {
         console.log('Calculating bridges...');
         
-        setTimeout(() => {
-            try {
-                const { coreProfile } = this.app.userData;
-                
-                if (!coreProfile) {
-                    this.app.WebApp?.showAlert?.('Сначала рассчитайте основной профиль');
-                    return;
-                }
-
-                const expression_soul = this.reduceNumber(
-                    Math.abs(parseInt(coreProfile.expression) - parseInt(coreProfile.soul))
-                );
-                const soul_personality = this.reduceNumber(
-                    Math.abs(parseInt(coreProfile.soul) - parseInt(coreProfile.personality))
-                );
-                const life_soul = this.reduceNumber(
-                    Math.abs(parseInt(coreProfile.lifePath) - parseInt(coreProfile.soul))
-                );
-                const life_personality = this.reduceNumber(
-                    Math.abs(parseInt(coreProfile.lifePath) - parseInt(coreProfile.personality))
-                );
-
-                this.app.userData.bridgesProfile = {
-                    expression_soul,
-                    soul_personality,
-                    life_soul,
-                    life_personality
-                };
-
-                this.app.navigation.goTo('bridges-screen');
-                this.app.updateBridgesScreen();
-                console.log('Bridges calculated successfully:', this.app.userData.bridgesProfile);
-            } catch (error) {
-                this.app.WebApp?.showAlert?.('Ошибка при расчете мостов.');
-                console.error('Bridges calculation error:', error);
+        try {
+            if (!coreProfile) {
+                throw new Error('Core profile is required for bridges calculation');
             }
-        }, 100);
+
+            const expression_soul = this.reduceNumber(
+                Math.abs(parseInt(coreProfile.expression) - parseInt(coreProfile.soul))
+            );
+            const soul_personality = this.reduceNumber(
+                Math.abs(parseInt(coreProfile.soul) - parseInt(coreProfile.personality))
+            );
+            const life_soul = this.reduceNumber(
+                Math.abs(parseInt(coreProfile.lifePath) - parseInt(coreProfile.soul))
+            );
+            const life_personality = this.reduceNumber(
+                Math.abs(parseInt(coreProfile.lifePath) - parseInt(coreProfile.personality))
+            );
+
+            const bridgesProfile = {
+                expression_soul,
+                soul_personality,
+                life_soul,
+                life_personality
+            };
+
+            console.log('Bridges calculated successfully:', bridgesProfile);
+            return bridgesProfile;
+        } catch (error) {
+            console.error('Bridges calculation error:', error);
+            throw error;
+        }
     }
 
-    calculateCycles() {
+    calculateCycles(name, birthdate) {
         console.log('Calculating cycles...');
         
-        setTimeout(() => {
-            try {
-                const { name, birthdate } = this.app.userData;
-                
-                if (!name || !birthdate) {
-                    this.app.WebApp?.showAlert?.('Сначала введите имя и дату рождения');
-                    return;
-                }
-
-                // Calculate personal year
-                const personalYear = this.calculatePersonalYear(birthdate);
-                
-                // Calculate pinnacles
-                const pinnacles = this.calculatePinnacles(birthdate);
-
-                this.app.userData.cyclesProfile = {
-                    personalYear,
-                    pinnacles
-                };
-
-                this.app.navigation.goTo('cycles-screen');
-                this.app.updateCyclesScreen();
-                console.log('Cycles calculated successfully:', this.app.userData.cyclesProfile);
-            } catch (error) {
-                this.app.WebApp?.showAlert?.('Ошибка при расчете циклов.');
-                console.error('Cycles calculation error:', error);
+        try {
+            if (!name || !birthdate) {
+                throw new Error('Name and birthdate are required for cycles calculation');
             }
-        }, 100);
+
+            // Calculate personal year
+            const personalYear = this.calculatePersonalYear(birthdate);
+            
+            // Calculate pinnacles
+            const pinnacles = this.calculatePinnacles(birthdate);
+
+            const cyclesProfile = {
+                personalYear,
+                pinnacles
+            };
+
+            console.log('Cycles calculated successfully:', cyclesProfile);
+            return cyclesProfile;
+        } catch (error) {
+            console.error('Cycles calculation error:', error);
+            throw error;
+        }
     }
 
-    calculatePartnerCompatibility() {
+    calculatePartnerCompatibility(name, birthdate, partnerName, partnerBirthdate) {
         console.log('Calculating partner compatibility...');
         
-        setTimeout(() => {
-            try {
-                const { name, birthdate } = this.app.userData;
-                const { partner } = this.app.userData;
-                
-                if (!name || !birthdate || !partner.name || !partner.birthdate) {
-                    this.app.WebApp?.showAlert?.('Пожалуйста, введите данные обоих партнеров');
-                    return;
-                }
-
-                // Calculate profiles for both partners
-                const partnerA = {
-                    lifePath: this.calculateLifePathNumber(birthdate),
-                    birthday: this.calculateBirthdayNumber(birthdate),
-                    expression: this.calculateExpressionNumber(name),
-                    soul: this.calculateSoulNumber(name),
-                    personality: this.calculatePersonalityNumber(name)
-                };
-
-                const partnerB = {
-                    lifePath: this.calculateLifePathNumber(partner.birthdate),
-                    birthday: this.calculateBirthdayNumber(partner.birthdate),
-                    expression: this.calculateExpressionNumber(partner.name),
-                    soul: this.calculateSoulNumber(partner.name),
-                    personality: this.calculatePersonalityNumber(partner.name)
-                };
-
-                this.app.userData.compatibilityProfile = {
-                    partnerA,
-                    partnerB
-                };
-
-                this.app.navigation.goTo('compatibility-screen');
-                this.app.updateCompatibilityScreen();
-                console.log('Partner compatibility calculated successfully:', this.app.userData.compatibilityProfile);
-            } catch (error) {
-                this.app.WebApp?.showAlert?.('Ошибка при расчете совместимости.');
-                console.error('Compatibility calculation error:', error);
+        try {
+            if (!name || !birthdate || !partnerName || !partnerBirthdate) {
+                throw new Error('All partner data is required for compatibility calculation');
             }
-        }, 100);
+
+            // Calculate profiles for both partners
+            const partnerA = {
+                lifePath: this.calculateLifePathNumber(birthdate),
+                birthday: this.calculateBirthdayNumber(birthdate),
+                expression: this.calculateExpressionNumber(name),
+                soul: this.calculateSoulNumber(name),
+                personality: this.calculatePersonalityNumber(name)
+            };
+
+            const partnerB = {
+                lifePath: this.calculateLifePathNumber(partnerBirthdate),
+                birthday: this.calculateBirthdayNumber(partnerBirthdate),
+                expression: this.calculateExpressionNumber(partnerName),
+                soul: this.calculateSoulNumber(partnerName),
+                personality: this.calculatePersonalityNumber(partnerName)
+            };
+
+            const compatibilityProfile = {
+                partnerA,
+                partnerB
+            };
+
+            console.log('Partner compatibility calculated successfully:', compatibilityProfile);
+            return compatibilityProfile;
+        } catch (error) {
+            console.error('Compatibility calculation error:', error);
+            throw error;
+        }
     }
 
     // Helper functions for extended calculations
