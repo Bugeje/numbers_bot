@@ -1,34 +1,15 @@
-extends Control  # Скрипт на корневом узле сцены.
+﻿extends Control
 
-# --- Ссылки на ноды ---
-@onready var btn: Button = $Button
-
-# --- Диалог ввода создадим программно, чтобы в сцене оставалась только 1 кнопка ---
-var dlg: AcceptDialog
-var input: LineEdit
+# Кэшируем ссылки на узлы интерфейса по именам из сцены
+@onready var input_field: LineEdit = $LineEdit
+@onready var result_label: Label = $Label
+@onready var submit_button: Button = $Button
 
 func _ready() -> void:
-	# Создаём диалог и поле ввода на лету (они невидимы до вызова popup).
-	dlg = AcceptDialog.new()
-	dlg.title = "Введите текст"
-	dlg.ok_button_text = "Готово"
-	add_child(dlg)
+    # Привязываем сигнал нажатия к обработчику после готовности сцены
+    submit_button.pressed.connect(_on_button_pressed)
 
-	input = LineEdit.new()
-	input.placeholder_text = "Ваш текст"
-	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dlg.add_child(input)
-
-	# Нажатие на кнопку — открыть диалог, очистив предыдущее значение.
-	btn.pressed.connect(func():
-		input.text = ""
-		dlg.popup_centered()  # Показать диалог по центру экрана.
-		input.grab_focus()
-	)
-
-	# Подтверждение диалога — переносим введённый текст на кнопку (если не пусто).
-	dlg.confirmed.connect(func():
-		var t := input.text.strip_edges()
-		if t != "":
-			btn.text = t
-	)
+func _on_button_pressed() -> void:
+    # Берём текст из поля ввода и показываем его в Label
+    var user_text := input_field.text
+    result_label.text = "Result: " + user_text

@@ -13,7 +13,21 @@ script = ExtResource("1_ig7tw")
 
 [node name="Button" type="Button" parent="."]
 layout_mode = 0
-offset_left = 378.0
-offset_top = 881.0
-offset_right = 728.0
-offset_bottom = 1005.0
+offset_left = 431.0
+offset_top = 256.0
+offset_right = 781.0
+offset_bottom = 380.0
+
+[node name="LineEdit" type="LineEdit" parent="."]
+layout_mode = 0
+offset_left = 439.0
+offset_top = 402.0
+offset_right = 781.0
+offset_bottom = 489.0
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 185.0
+offset_top = 63.0
+offset_right = 1013.0
+offset_bottom = 233.0
