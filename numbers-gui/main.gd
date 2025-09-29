@@ -11,7 +11,7 @@ extends Control
 @onready var result_label: Label = $ResultLabel
 @onready var http_request: HTTPRequest = $HTTPRequest
 
-const PROFILE_ENDPOINT := "http://127.0.0.1:8000/profile"  # замените на адрес вашего сервера
+const PROFILE_ENDPOINT := "http://0.0.0.0:8000/profile"  # замените на адрес вашего сервера
 
 var date_regex := RegEx.new()
 var name_regex := RegEx.new()
