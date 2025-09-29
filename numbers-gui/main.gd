@@ -1,6 +1,6 @@
 extends Control
 
-# Получаем ссылки на элементы интерфейса
+# Главный UI-скрипт: собирает данные и отправляет запросы
 @onready var date_input: LineEdit = $DateLineEdit
 @onready var name_input: LineEdit = $NameLineEdit
 @onready var date_button: Button = $DateButton
@@ -11,13 +11,15 @@ extends Control
 @onready var result_label: Label = $ResultLabel
 
 const PROFILE_ENDPOINT := "http://127.0.0.1:8001/profile"  # замените на адрес вашего сервера
-
 var date_regex := RegEx.new()
 var name_regex := RegEx.new()
-var http_request: HTTPRequest = null
+
+@onready var http_request: HTTPRequest = $HTTPRequest
+var busy := false  # true, пока выполняем HTTP-запрос
 
 func _ready() -> void:
-	# Настраиваем обработчики и регулярные выражения
+	print("READY OK")
+	# Готовим регулярки и подключаем сигналы интерфейса
 	var date_err := date_regex.compile("^\\d{2}\\.\\d{2}\\.\\d{4}$")
 	if date_err != OK:
 		push_warning("Не удалось скомпилировать регулярное выражение даты")
@@ -27,15 +29,13 @@ func _ready() -> void:
 	date_button.pressed.connect(_on_date_button_pressed)
 	name_button.pressed.connect(_on_name_button_pressed)
 	profile_button.pressed.connect(_on_ProfileButton_pressed)
-
-	http_request = get_node_or_null("HTTPRequest")
 	if http_request:
 		http_request.request_completed.connect(_on_HTTPRequest_request_completed)
 	else:
-		push_warning("Узел HTTPRequest не найден. Проверьте сцену.")
+		push_warning("Missing HTTPRequest node.")
 
 func _on_date_button_pressed() -> void:
-	# Проверяем дату перед выводом
+	# Проверяем дату и выводим результат пользователю
 	var text := date_input.text.strip_edges()
 	if date_regex.search(text):
 		date_label.text = "Введённая дата: " + text
@@ -43,7 +43,7 @@ func _on_date_button_pressed() -> void:
 		date_label.text = "Ошибка: введите дату в формате ДД.ММ.ГГГГ"
 
 func _on_name_button_pressed() -> void:
-	# Проверяем ФИО: минимум два слова и только буквы
+	# Проверяем ФИО: нужно минимум два слова с буквами
 	var text := name_input.text.strip_edges()
 	var parts: Array = text.split(" ", false)
 	if parts.size() < 2:
@@ -56,27 +56,29 @@ func _on_name_button_pressed() -> void:
 	name_label.text = "ФИО корректно: " + text
 
 func _on_ProfileButton_pressed() -> void:
-	# Отправляем профиль на сервер FastAPI
+	# Отправляем данные на FastAPI и блокируем повторные клики
+	# Если запрос уже в работе, просто выходим
+	if busy:
+		return
 	if http_request == null:
 		result_label.text = "Ошибка: узел HTTPRequest не найден"
 		return
-	if http_request.is_requesting():
-		result_label.text = "Запрос уже выполняется"
-		return
-
 	var payload := {
 		"full_name": name_input.text.strip_edges(),
 		"birthdate": date_input.text.strip_edges()
 	}
-	var json_body := JSON.stringify(payload)
 	var headers := PackedStringArray(["Content-Type: application/json"])
-	var err := http_request.request(PROFILE_ENDPOINT, headers, HTTPClient.METHOD_POST, json_body)
+	var body := JSON.stringify(payload)
+	busy = true
+	var err := http_request.request(PROFILE_ENDPOINT, headers, HTTPClient.METHOD_POST, body)
 	if err != OK:
-		result_label.text = "Ошибка: не удалось отправить запрос (код %d)" % err
+		busy = false
+		result_label.text = "Ошибка отправки: %d" % err
 	else:
 		result_label.text = "Отправляем запрос на сервер..."
 
 func _parse_json(body_text: String) -> Dictionary:
+	# Разбираем JSON-строку и возвращаем словарь или {}
 	var parser := JSON.new()
 	var error := parser.parse(body_text)
 	if error == OK:
@@ -86,11 +88,11 @@ func _parse_json(body_text: String) -> Dictionary:
 	return {}
 
 func _on_HTTPRequest_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	# Обрабатываем ответ сервера FastAPI
+	busy = false  # Разрешаем отправлять запрос повторно
+	# Обрабатываем ответ FastAPI и показываем результат
 	if result != HTTPRequest.RESULT_SUCCESS:
 		result_label.text = "Ошибка сети: код %d" % result
 		return
-
 	var body_text := body.get_string_from_utf8()
 	if response_code == 200:
 		var data: Dictionary = _parse_json(body_text)

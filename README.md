@@ -1,18 +1,17 @@
-﻿# Numbers Core
+# Numbers Core
 
-`numbers_core` — модуль на Python для расчёта нумерологических профилей и генерации текстовых интерпретаций с помощью AI-клиентов. Его можно использовать в Telegram-ботах, десктопных приложениях или любых других интеграциях, где нужна автоматическая интерпретация чисел даты рождения и ФИО.
+`numbers_core` — библиотека на Python для расчёта числового профиля человека и генерации текстовых интерпретаций с помощью AI-клиентов. Её можно использовать отдельно, в составе Telegram-бота или вместе с Godot-клиентом из каталога `numbers-gui`.
 
 ## Возможности
 
-- Расчёт ключевых чисел (путь судьбы, число дня рождения, число экспрессии, души и личности).
-- Удобные функции-адаптеры: расчёт профиля, генерация текстового разбора, получение структурированных данных.
-- Возможность подменять AI-клиента на любой другой движок (OpenAI, локальные модели и т. п.).
-- Готовая схема тестирования и примеры использования.
+- Расчёт пяти ключевых чисел (путь жизни, число судьбы, выражение, душа, личность).
+- Расширяемые AI-клиенты: от мок-реализаций до интеграций с внешними API.
+- Общий пайплайн `run()` c валидацией входных данных и возвратом готовой структуры.
 
 ## Требования
 
 - Python 3.10 или новее.
-- Базовая подготовленная среда: виртуальное окружение Python и установленный pip.
+- Установленный `pip`.
 
 ## Установка
 
@@ -20,22 +19,22 @@
 pip install -e .
 ```
 
-> Можно использовать `pip install .`, если не планируете локальные правки кода.
+> Для production-сборки можно использовать `pip install .`.
 
-## Быстрый старт
+## Быстрый пример
 
 ```python
 from numbers_core import ProfileInput, run
 
 result = run(ProfileInput(name="Иван Иванов", birthdate="1990-01-01"))
-print(result["profile"])            # расчёт чисел и их значения
-print(result["analysis"]["text"])  # текст, сгенерированный AI-клиентом
+print(result["profile"])            # словарь с числами
+print(result["analysis"]["text"])  # текст, который сгенерировал AI-клиент
 ```
 
 - `profile` — словарь с ключами `life_path`, `birthday`, `expression`, `soul`, `personality`.
-- `analysis` — словарь с полем `text`. В примерах используется заглушка `MockAIClient`.
+- `analysis` — словарь с ключом `text`. По умолчанию используется `MockAIClient`.
 
-## Минимальный расчёт без AI
+## Ручной расчёт без AI
 
 ```python
 from numbers_core.calc import calculate_core_profile
@@ -43,9 +42,9 @@ from numbers_core.calc import calculate_core_profile
 profile = calculate_core_profile("Иван Иванов", "01.01.1990")
 ```
 
-Дополнительные функции доступны в пакете `numbers_core.calc` (суммы, редукция, подсчёт букв и т. д.) и экспортируются через `numbers_core/calc/__init__.py`.
+Функции расчёта лежат в `numbers_core/calc`, а их публичный интерфейс экспортирован из `numbers_core/calc/__init__.py`.
 
-## Подключение собственного AI-клиента
+## Собственный AI-клиент
 
 ```python
 from numbers_core import ProfileInput, run
@@ -53,20 +52,20 @@ from numbers_core.intelligence.engine import AIClient
 
 class MyAIClient(AIClient):
     def generate(self, prompt: str) -> str:
-        return "Ваш кастомный ответ"
+        return "Ваш кастомный текст"
 
 result = run(ProfileInput(name="Иван Иванов", birthdate="1990-01-01"), ai=MyAIClient())
 ```
 
-По умолчанию используется `MockAIClient`, который подходит для разработки и тестов.
+`MockAIClient` можно использовать как пример и заглушку на время разработки.
 
 ## Структура репозитория
 
-- `numbers_core/calc` — функции нумерологических расчётов.
-- `numbers_core/core` — бизнес-логика: оркестратор и взаимодействие с AI.
-- `numbers_core/intelligence` — интерфейсы и реализации AI-клиентов.
+- `numbers_core/calc` — функции расчёта числовых показателей.
+- `numbers_core/core` — инфраструктура пайплайна, валидация и интеграция с AI.
+- `numbers_core/intelligence` — реализации AI-клиентов и связанные утилиты.
 - `numbers_core/tests` — модульные тесты.
-- `numbers-gui` — экспериментальный интерфейс на Godot 4 для ручного ввода данных.
+- `numbers-gui` — клиент на Godot 4 для быстрого ручного тестирования.
 
 ## Тесты
 
@@ -74,52 +73,61 @@ result = run(ProfileInput(name="Иван Иванов", birthdate="1990-01-01"),
 python -m pytest numbers_core/tests
 ```
 
-Тесты можно запускать как из IDE, так и из командной строки. Добавляйте дополнительные сценарии в `numbers_core/tests` по мере развития проекта.
+Запускайте из виртуального окружения или IDE. Новые тесты стоит складывать в `numbers_core/tests` рядом с соответствующими модулями.
 
-## Интерфейс Godot (`numbers-gui`)
+## Godot-клиент (`numbers-gui`)
 
-Скрипт `numbers-gui/main.gd` реализует простую форму на Godot 4:
+Сцена `numbers-gui/main.tscn` содержит базовый интерфейс Godot 4:
 
-- Два `LineEdit`: `DateLineEdit` для даты и `NameLineEdit` для ФИО.
-- Три кнопки: `DateButton`, `NameButton`, `ProfileButton` (для отправки данных на сервер).
-- Три `Label`: `DateLabel`, `NameLabel`, `ResultLabel`.
-- Узел `HTTPRequest`, который отправляет POST-запрос на FastAPI-сервер и получает JSON с расчётами.
+- `LineEdit` поля: `DateLineEdit` (дата) и `NameLineEdit` (ФИО).
+- Кнопки: `DateButton`, `NameButton`, `ProfileButton` (отправка на сервер).
+- Метки: `DateLabel`, `NameLabel`, `ResultLabel`.
+- Узел `HTTPRequest`, который делает POST-запросы к FastAPI-сервису.
 
-### Как собрать сцену
+Скрипт `main.gd`:
 
-1. Создайте сцену с корневым узлом `Control` и привяжите к нему скрипт `main.gd`.
-2. Добавьте дочерние узлы с именами, соответствующими переменным в скрипте (пути `$…` должны совпасть).
-3. Подключите сигнал `request_completed` от узла `HTTPRequest` к методу `_on_HTTPRequest_request_completed` и сигнал `pressed` от `ProfileButton` к `_on_ProfileButton_pressed` (через Inspector → Node → Signals).
-4. Замените `PROFILE_ENDPOINT` в коде на адрес вашего сервера.
-5. Запустите сцену: проверки даты и ФИО работают локально, кнопка «Профиль» отправляет данные и отображает ответ сервера.
+- Использует `@onready` для привязки узлов, включая `HTTPRequest`.
+- В `_ready()` компилирует регулярные выражения и подключает сигналы.
+- Хранит флаг `busy`, чтобы блокировать повторные нажатия `ProfileButton`, пока запрос выполняется.
+- Подписывается на сигнал `request_completed` только один раз в `_ready()`.
 
-## Вариант для мобильных клиентов: FastAPI + HTTP
+### Проверка
 
-На Android/iOS нет Python-интерпретатора, поэтому расчёты выполняются на сервере. Минимальный пример сервера и клиента уже лежит в репозитории:
+1. Откройте сцену Godot и убедитесь, что скрипт `main.gd` назначен на корневой `Control`.
+2. Проверьте, что сигнал `request_completed` у `HTTPRequest` подключён только через код — в `.tscn` он отсутствует.
+3. В консоли Godot при старте должна появиться строка `READY OK`.
+4. Нажатия на «Профиль» игнорируются, пока `busy` равен `true`.
 
-- `api.py` — FastAPI-приложение с эндпойнтом `POST /profile`, который вызывает `calculate_core_profile` и возвращает JSON с ключевыми числами.
-- `requirements.txt` — зависимости сервера (`fastapi`, `uvicorn`, `pydantic>=2,<3`).
-- Godot-скрипт (`numbers-gui/main.gd`) отправляет JSON `{"full_name": ..., "birthdate": ...}` через узел `HTTPRequest` и отображает полученные значения.
+## Локальный backend (FastAPI)
 
-### Запуск сервера
+Файлы для API лежат рядом с корнем проекта:
+
+- `api.py` — приложение FastAPI с маршрутом `POST /profile`, который вызывает `calculate_core_profile` и возвращает JSON.
+- `requirements.txt` — зависимости (`fastapi`, `uvicorn`, `pydantic>=2,<3`).
+
+### Запуск backend-а
 
 **Windows (PowerShell)**
 
-    py -3 -m venv .venv
-    .\.venv\Scripts\Activate.ps1
-    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-    .\.venv\Scripts\python.exe api.py
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe api.py
+```
 
-Если PowerShell блокирует запуск скриптов, временно выполните команду Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process.
+Если PowerShell заблокировал запуск, временно разрешите скрипты: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`.
 
 **Linux/macOS**
 
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    python3 api.py
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 api.py
+```
 
-Сервер стартует на `http://0.0.0.0:8000`, эндпойнт `POST /profile` принимает JSON вида:
+По умолчанию сервер слушает `http://127.0.0.1:8001` и принимает JSON такого вида:
 
 ```json
 {
@@ -128,8 +136,8 @@ python -m pytest numbers_core/tests
 }
 ```
 
-Ответ содержит поля `life_path`, `birthday`, `expression`, `soul`, `personality`, которые клиент Godot выводит в `ResultLabel`.
+Ответ содержит поля `life_path`, `birthday`, `expression`, `soul`, `personality`, которые выводятся в `ResultLabel`.
 
 ## Обратная связь
 
-Предложения и вопросы можно отправлять через issue или pull request.
+Создавайте issue или pull request, если нашли проблему или хотите предложить улучшение.
