@@ -103,12 +103,21 @@ python -m pytest numbers_core/tests
 
 ### Запуск сервера
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python api.py
-```
+**Windows (PowerShell)**
+
+    py -3 -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+    .\.venv\Scripts\python.exe api.py
+
+Если PowerShell блокирует запуск скриптов, временно выполните команду Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process.
+
+**Linux/macOS**
+
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    python3 api.py
 
 Сервер стартует на `http://0.0.0.0:8000`, эндпойнт `POST /profile` принимает JSON вида:
 

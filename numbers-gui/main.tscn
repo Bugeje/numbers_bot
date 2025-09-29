@@ -52,3 +52,10 @@ offset_left = 286.0
 offset_top = 209.0
 offset_right = 1114.0
 offset_bottom = 280.0
+
+[node name="ResultLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 291.0
+offset_top = 22.0
+offset_right = 1119.0
+offset_bottom = 190.0
