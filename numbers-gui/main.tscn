@@ -12,6 +12,7 @@ grow_vertical = 2
 script = ExtResource("1_ig7tw")
 
 [node name="DateButton" type="Button" parent="."]
+visible = false
 layout_mode = 0
 offset_left = 801.0
 offset_top = 409.0
@@ -19,6 +20,7 @@ offset_right = 892.0
 offset_bottom = 497.0
 
 [node name="NameButton" type="Button" parent="."]
+visible = false
 layout_mode = 0
 offset_left = 801.0
 offset_top = 515.0
@@ -26,6 +28,7 @@ offset_right = 893.0
 offset_bottom = 603.0
 
 [node name="ProfileButton" type="Button" parent="."]
+visible = false
 layout_mode = 0
 offset_left = 909.0
 offset_top = 467.0
@@ -33,6 +36,7 @@ offset_right = 1001.0
 offset_bottom = 555.0
 
 [node name="DateLineEdit" type="LineEdit" parent="."]
+visible = false
 layout_mode = 0
 offset_left = 439.0
 offset_top = 408.0
@@ -40,6 +44,7 @@ offset_right = 781.0
 offset_bottom = 495.0
 
 [node name="NameLineEdit" type="LineEdit" parent="."]
+visible = false
 layout_mode = 0
 offset_left = 439.0
 offset_top = 515.0

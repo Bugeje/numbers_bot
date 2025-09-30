@@ -1,110 +1,169 @@
 extends Control
 
-# Главный UI-скрипт: собирает данные и отправляет запросы
+# Узлы
 @onready var date_input: LineEdit = $DateLineEdit
 @onready var name_input: LineEdit = $NameLineEdit
 @onready var date_button: Button = $DateButton
 @onready var name_button: Button = $NameButton
-@onready var profile_button: Button = $ProfileButton
+@onready var profile_button: Button = $ProfileButton # будем скрывать
 @onready var date_label: Label = $DateLabel
 @onready var name_label: Label = $NameLabel
 @onready var result_label: Label = $ResultLabel
+@onready var http: HTTPRequest = $HTTPRequest
 
-const PROFILE_ENDPOINT := "http://127.0.0.1:8001/profile"  # замените на адрес вашего сервера
+# Состояния
+enum Step { NAME, DATE, RESULT }
+var step := Step.NAME
+var busy := false
+
+# Валидаторы
 var date_regex := RegEx.new()
-var name_regex := RegEx.new()
+var name_part_regex := RegEx.new()
 
-@onready var http_request: HTTPRequest = $HTTPRequest
-var busy := false  # true, пока выполняем HTTP-запрос
+const PROFILE_ENDPOINT := "http://127.0.0.1:8001/profile" # замените на IP ПК
+
+# Контейнер для доп.кнопок под результатом
+var actions_box: HBoxContainer
 
 func _ready() -> void:
-	print("READY OK")
-	# Готовим регулярки и подключаем сигналы интерфейса
-	var date_err := date_regex.compile("^\\d{2}\\.\\d{2}\\.\\d{4}$")
-	if date_err != OK:
-		push_warning("Не удалось скомпилировать регулярное выражение даты")
-	var name_err := name_regex.compile("^[А-Яа-яЁё]+$")
-	if name_err != OK:
-		push_warning("Не удалось скомпилировать регулярное выражение ФИО")
-	date_button.pressed.connect(_on_date_button_pressed)
-	name_button.pressed.connect(_on_name_button_pressed)
-	profile_button.pressed.connect(_on_ProfileButton_pressed)
-	if http_request:
-		http_request.request_completed.connect(_on_HTTPRequest_request_completed)
-	else:
-		push_warning("Missing HTTPRequest node.")
+	# regex
+	date_regex.compile(r"^(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.(19\d{2}|20\d{2})$")
+	name_part_regex.compile(r"^[\p{L}][\p{L}\-']+$")
 
-func _on_date_button_pressed() -> void:
-	# Проверяем дату и выводим результат пользователю
-	var text := date_input.text.strip_edges()
-	if date_regex.search(text):
-		date_label.text = "Введённая дата: " + text
-	else:
-		date_label.text = "Ошибка: введите дату в формате ДД.ММ.ГГГГ"
+	# сигналы
+	name_button.pressed.connect(_on_name_confirm)
+	date_button.pressed.connect(_on_date_confirm)
+	http.request_completed.connect(_on_request_completed)
 
-func _on_name_button_pressed() -> void:
-	# Проверяем ФИО: нужно минимум два слова с буквами
-	var text := name_input.text.strip_edges()
-	var parts: Array = text.split(" ", false)
+	# прячем старую кнопку профиля
+	profile_button.visible = false
+
+	# начальный шаг
+	_show_step(Step.NAME)
+
+func _show_step(target: Step) -> void:
+	step = target
+
+	var show_name := (step == Step.NAME)
+	var show_date := (step == Step.DATE)
+	var show_result := (step == Step.RESULT)
+
+	# имя
+	name_input.visible = show_name
+	name_button.visible = show_name
+	name_label.visible = show_name
+	if show_name:
+		name_label.text = "Введите ФИО (минимум два слова)"
+
+	# дата
+	date_input.visible = show_date
+	date_button.visible = show_date
+	date_label.visible = show_date
+	if show_date:
+		date_label.text = "Введите дату рождения (ДД.ММ.ГГГГ)"
+
+	# результат
+	result_label.visible = show_result
+	if show_result and actions_box == null:
+		_create_actions_box()
+
+func _on_name_confirm() -> void:
+	var fio := name_input.text.strip_edges()
+	var parts: PackedStringArray = fio.split(" ", false)
 	if parts.size() < 2:
-		name_label.text = "Ошибка: нужно минимум Имя и Фамилия"
+		name_label.text = "Ошибка: минимум Имя и Фамилия"
 		return
-	for part in parts:
-		if name_regex.search(part) == null:
-			name_label.text = "Ошибка: допустимы только буквы"
+	for p in parts:
+		if name_part_regex.search(p) == null:
+			name_label.text = "Ошибка: только буквы (можно дефис/апостроф)"
 			return
-	name_label.text = "ФИО корректно: " + text
+	name_label.text = "Ок"
+	_show_step(Step.DATE)
 
-func _on_ProfileButton_pressed() -> void:
-	# Отправляем данные на FastAPI и блокируем повторные клики
-	# Если запрос уже в работе, просто выходим
-	if busy:
+func _on_date_confirm() -> void:
+	var ds := date_input.text.strip_edges()
+	if date_regex.search(ds) == null:
+		date_label.text = "Ошибка: формат ДД.ММ.ГГГГ"
 		return
-	if http_request == null:
-		result_label.text = "Ошибка: узел HTTPRequest не найден"
+	date_label.text = "Ок"
+	# переходим к результату и сразу шлём запрос
+	_show_step(Step.RESULT)
+	_send_request()
+
+func _send_request() -> void:
+	if busy:
 		return
 	var payload := {
 		"full_name": name_input.text.strip_edges(),
 		"birthdate": date_input.text.strip_edges()
 	}
-	var headers := PackedStringArray(["Content-Type: application/json"])
+	var headers := ["Content-Type: application/json"]
 	var body := JSON.stringify(payload)
 	busy = true
-	var err := http_request.request(PROFILE_ENDPOINT, headers, HTTPClient.METHOD_POST, body)
+	result_label.text = "Считаю…"
+	var err := http.request(PROFILE_ENDPOINT, headers, HTTPClient.METHOD_POST, body)
 	if err != OK:
 		busy = false
-		result_label.text = "Ошибка отправки: %d" % err
-	else:
-		result_label.text = "Отправляем запрос на сервер..."
+		result_label.text = "Ошибка отправки: %s" % str(err)
 
-func _parse_json(body_text: String) -> Dictionary:
-	# Разбираем JSON-строку и возвращаем словарь или {}
-	var parser := JSON.new()
-	var error := parser.parse(body_text)
-	if error == OK:
-		var parsed: Variant = parser.data
-		if parsed is Dictionary:
-			return parsed
-	return {}
-
-func _on_HTTPRequest_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	busy = false  # Разрешаем отправлять запрос повторно
-	# Обрабатываем ответ FastAPI и показываем результат
+func _on_request_completed(result: int, code: int, _h: PackedStringArray, body: PackedByteArray) -> void:
+	busy = false
 	if result != HTTPRequest.RESULT_SUCCESS:
-		result_label.text = "Ошибка сети: код %d" % result
+		result_label.text = "Ошибка сети: %d" % result
 		return
-	var body_text := body.get_string_from_utf8()
-	if response_code == 200:
-		var data: Dictionary = _parse_json(body_text)
-		if data.size() > 0:
-			result_label.text = "Жизненный путь: %s\nДень рождения: %s\nВыражение: %s\nДуша: %s\nЛичность: %s" % [
-				str(data.get("life_path", "")),
-				str(data.get("birthday", "")),
-				str(data.get("expression", "")),
-				str(data.get("soul", "")),
-				str(data.get("personality", ""))
-			]
-		else:
-			result_label.text = "Ошибка: не удалось разобрать ответ"
+
+	var text := body.get_string_from_utf8()
+	var data: Variant = JSON.parse_string(text)
+	if code == 200 and typeof(data) == TYPE_DICTIONARY:
+		result_label.text = "Жизненный путь: %s\nДень рождения: %s\nВыражение: %s\nДуша: %s\nЛичность: %s" % [
+			str(data.get("life_path", "")),
+			str(data.get("birthday", "")),
+			str(data.get("expression", "")),
+			str(data.get("soul", "")),
+			str(data.get("personality", ""))
+		]
 	else:
-		result_label.text = "Ошибка сервера %d: %s" % [response_code, body_text]
+		result_label.text = "Ошибка %d: %s" % [code, text]
+
+func _create_actions_box() -> void:
+	actions_box = HBoxContainer.new()
+	actions_box.name = "ResultActions"
+	add_child(actions_box)
+
+	# позиционируем под result_label (простая раскладка с абсолютными оффсетами сцены)
+	actions_box.anchor_left = 0
+	actions_box.anchor_right = 0
+	actions_box.anchor_top = 0
+	actions_box.anchor_bottom = 0
+	actions_box.offset_left = result_label.offset_left
+	actions_box.offset_top = result_label.offset_bottom + 16
+	actions_box.offset_right = result_label.offset_right
+	actions_box.offset_bottom = actions_box.offset_top + 40
+	actions_box.visible = true
+
+	var b1 := Button.new(); b1.text = "Совместимость"
+	var b2 := Button.new(); b2.text = "Годы"
+	var b3 := Button.new(); b3.text = "Месяцы"
+	var b4 := Button.new(); b4.text = "Детали"
+
+	b1.pressed.connect(func(): _on_extra("compat"))
+	b2.pressed.connect(func(): _on_extra("years"))
+	b3.pressed.connect(func(): _on_extra("months"))
+	b4.pressed.connect(func(): _on_extra("details"))
+
+	actions_box.add_child(b1)
+	actions_box.add_child(b2)
+	actions_box.add_child(b3)
+	actions_box.add_child(b4)
+
+func _on_extra(kind: String) -> void:
+	match kind:
+		"compat":
+			# TODO: вызвать свой эндпоинт совместимости или локальный расчёт
+			result_label.text += "\n→ Совместимость: скоро"
+		"years":
+			result_label.text += "\n→ Годы: скоро"
+		"months":
+			result_label.text += "\n→ Месяцы: скоро"
+		"details":
+			result_label.text += "\n→ Детали: скоро"
