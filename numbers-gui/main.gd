@@ -52,15 +52,11 @@ func _show_step(target: Step) -> void:
 	name_input.visible = show_name
 	name_button.visible = show_name
 	name_label.visible = show_name
-	if show_name:
-		name_label.text = "Введите ФИО (минимум два слова)"
 
 	# дата
 	date_input.visible = show_date
 	date_button.visible = show_date
 	date_label.visible = show_date
-	if show_date:
-		date_label.text = "Введите дату рождения (ДД.ММ.ГГГГ)"
 
 	# результат
 	result_label.visible = show_result
