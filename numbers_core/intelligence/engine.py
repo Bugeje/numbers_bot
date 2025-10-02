@@ -12,3 +12,6 @@ class MockAIClient:
 
     def generate(self, prompt: str) -> str:
         return "Анализ временно недоступен: использована mock-реализация."
+
+    def chat(self, system: str, user: str) -> str:
+        return self.generate(system.strip() + "\n\n" + user.strip())

@@ -5,5 +5,5 @@
   "git.allowForcePush": false,
   "git.pruneOnFetch": true,
   "python.defaultInterpreterPath": ".venv/bin/python",
-  "godotTools.editorPath.godot4": "c:\\Users\\Celina\\Desktop\\Godot_v4.5-stable_win64.exe"
+  "godotTools.editorPath.godot4": "c:\\Users\\abuov\\Desktop\\Godot_v4.5-stable_win64.exe"
 }
