@@ -1,143 +1,111 @@
-# Numbers Core
+﻿# Numbers Core
 
-`numbers_core` — библиотека на Python для расчёта числового профиля человека и генерации текстовых интерпретаций с помощью AI-клиентов. Её можно использовать отдельно, в составе Telegram-бота или вместе с Godot-клиентом из каталога `numbers-gui`.
+Простой инструмент, который помогает посчитать ваш нумерологический профиль и получить короткое описание от ИИ‑ассистента. Внутри проекта есть:
+- «мотор» для расчётов по имени и дате рождения;
+- шаблоны сообщений для ИИ и подключение к сервису OpenRouter;
+- небольшой веб‑сервер на FastAPI и отдельный интерфейс на Godot (по желанию).
 
-## Возможности
+## Что умеет программа
+- Находит пять базовых чисел: путь судьбы (life path), число дня рождения, число выражения, души и личности.
+- Готовит текстовую интерпретацию на русском языке с понятными рекомендациями.
+- Может работать локально (только расчёт) или обращаться к облачной модели через OpenRouter.
+- Предоставляет HTTP‑эндпоинт `/profile`, который возвращает расчёт в формате JSON. Это удобно для сторонних приложений.
 
-- Расчёт пяти ключевых чисел (путь жизни, число судьбы, выражение, душа, личность).
-- Расширяемые AI-клиенты: от мок-реализаций до интеграций с внешними API.
-- Общий пайплайн `run()` c валидацией входных данных и возвратом готовой структуры.
+## Что нужно подготовить
+1. **Компьютер с Windows, macOS или Linux.**
+2. **Python версии 3.10 и новее.** Скачать можно на https://www.python.org/downloads/
+3. **Доступ в интернет.** Нужен, чтобы установить зависимости и отправлять запросы в OpenRouter.
+4. **Учётная запись и API‑ключ OpenRouter.** Зарегистрируйтесь на https://openrouter.ai/ и сгенерируйте ключ.
+5. (Опционально) **Godot 4**, если хотите использовать графический интерфейс в папке `numbers-gui`.
 
-## Требования
+## Быстрый старт (пошагово)
+1. **Скачайте или клонируйте проект.**
+2. **Откройте терминал** (PowerShell на Windows, Terminal на macOS/Linux) и перейдите в папку проекта `numbers_bot`.
+3. **Создайте виртуальное окружение:**
+   ```bash
+   python -m venv .venv
+   ```
+4. **Активируйте окружение:**
+   - Windows PowerShell:
+     ```bash
+     .\.venv\Scripts\activate
+     ```
+   - macOS/Linux:
+     ```bash
+     source .venv/bin/activate
+     ```
+5. **Установите зависимости:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+6. **Добавьте ключ OpenRouter.** Создайте файл `.env` в корне проекта и вставьте строку:
+   ```
+   OPENROUTER_API_KEY=ваш_ключ
+   ```
+   Вместо `ваш_ключ` укажите значение из вашего кабинета OpenRouter. Если не хотите файл, можно выставить переменную в терминале командой `set` (Windows) или `export` (macOS/Linux).
 
-- Python 3.10 или новее.
-- Установленный `pip`.
+После этих шагов расчёт профиля готов к работе.
 
-## Установка
-
-```bash
-pip install -e .
-```
-
-> Для production-сборки можно использовать `pip install .`.
-
-## Быстрый пример
-
+## Как получить расчёт и интерпретацию
+Самый простой путь — использовать готовый оркестратор:
 ```python
-from numbers_core import ProfileInput, run
+from numbers_core.core.orchestrator import ProfileInput, run
 
 result = run(ProfileInput(name="Иван Иванов", birthdate="1990-01-01"))
 print(result["profile"])            # словарь с числами
-print(result["analysis"]["text"])  # текст, который сгенерировал AI-клиент
+print(result["analysis"]["text"])  # текст от ИИ
 ```
+- Поле `profile` содержит пять чисел профиля.
+- Поле `analysis` — словарь с ключом `text`, где хранится ответ модели. Если интернет недоступен или ключ не задан, будет возвращено сообщение-заглушка.
 
-- `profile` — словарь с ключами `life_path`, `birthday`, `expression`, `soul`, `personality`.
-- `analysis` — словарь с ключом `text`. По умолчанию используется `MockAIClient`.
-
-## Ручной расчёт без AI
-
+## Только расчёт без ИИ
+Хотите получить только числа и обойтись без OpenRouter? Подключите модуль расчёта напрямую:
 ```python
-from numbers_core.calc import calculate_core_profile
-
+from numbers_core.calc.profile import calculate_core_profile
 profile = calculate_core_profile("Иван Иванов", "01.01.1990")
+print(profile)
 ```
 
-Функции расчёта лежат в `numbers_core/calc`, а их публичный интерфейс экспортирован из `numbers_core/calc/__init__.py`.
-
-## Собственный AI-клиент
-
-```python
-from numbers_core import ProfileInput, run
-from numbers_core.intelligence.engine import AIClient
-
-class MyAIClient(AIClient):
-    def generate(self, prompt: str) -> str:
-        return "Ваш кастомный текст"
-
-result = run(ProfileInput(name="Иван Иванов", birthdate="1990-01-01"), ai=MyAIClient())
-```
-
-`MockAIClient` можно использовать как пример и заглушку на время разработки.
-
-## Структура репозитория
-
-- `numbers_core/calc` — функции расчёта числовых показателей.
-- `numbers_core/core` — инфраструктура пайплайна, валидация и интеграция с AI.
-- `numbers_core/intelligence` — реализации AI-клиентов и связанные утилиты.
-- `numbers_core/tests` — модульные тесты.
-- `numbers-gui` — клиент на Godot 4 для быстрого ручного тестирования.
-
-## Тесты
-
+## Веб‑сервер (по желанию)
+Запустите REST‑API и отправляйте запросы из Postman, браузера или вашего приложения:
 ```bash
-python -m pytest numbers_core/tests
+uvicorn api:app --reload --port 8001
 ```
-
-Запускайте из виртуального окружения или IDE. Новые тесты стоит складывать в `numbers_core/tests` рядом с соответствующими модулями.
-
-## Godot-клиент (`numbers-gui`)
-
-Сцена `numbers-gui/main.tscn` содержит базовый интерфейс Godot 4:
-
-- `LineEdit` поля: `DateLineEdit` (дата) и `NameLineEdit` (ФИО).
-- Кнопки: `DateButton`, `NameButton`, `ProfileButton` (отправка на сервер).
-- Метки: `DateLabel`, `NameLabel`, `ResultLabel`.
-- Узел `HTTPRequest`, который делает POST-запросы к FastAPI-сервису.
-
-Скрипт `main.gd`:
-
-- Использует `@onready` для привязки узлов, включая `HTTPRequest`.
-- В `_ready()` компилирует регулярные выражения и подключает сигналы.
-- Хранит флаг `busy`, чтобы блокировать повторные нажатия `ProfileButton`, пока запрос выполняется.
-- Подписывается на сигнал `request_completed` только один раз в `_ready()`.
-
-### Проверка
-
-1. Откройте сцену Godot и убедитесь, что скрипт `main.gd` назначен на корневой `Control`.
-2. Проверьте, что сигнал `request_completed` у `HTTPRequest` подключён только через код — в `.tscn` он отсутствует.
-3. В консоли Godot при старте должна появиться строка `READY OK`.
-4. Нажатия на «Профиль» игнорируются, пока `busy` равен `true`.
-
-## Локальный backend (FastAPI)
-
-Файлы для API лежат рядом с корнем проекта:
-
-- `api.py` — приложение FastAPI с маршрутом `POST /profile`, который вызывает `calculate_core_profile` и возвращает JSON.
-- `requirements.txt` — зависимости (`fastapi`, `uvicorn`, `pydantic>=2,<3`).
-
-### Запуск backend-а
-
-**Windows (PowerShell)**
-
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe api.py
-```
-
-Если PowerShell заблокировал запуск, временно разрешите скрипты: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`.
-
-**Linux/macOS**
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python3 api.py
-```
-
-По умолчанию сервер слушает `http://127.0.0.1:8001` и принимает JSON такого вида:
-
+Пример запроса (POST `http://127.0.0.1:8001/profile`):
 ```json
 {
   "full_name": "Иван Иванов",
-  "birthdate": "26.09.2025"
+  "birthdate": "1990-01-01"
 }
 ```
+Ответ будет содержать пять чисел профиля. Для текстового анализа используйте функции из `numbers_core.intelligence`.
 
-Ответ содержит поля `life_path`, `birthday`, `expression`, `soul`, `personality`, которые выводятся в `ResultLabel`.
+## Шаблоны промтов и OpenRouter
+- Системный промт: `numbers_core/intelligence/prompts/system.ru.md`
+- Пользовательский промт: `numbers_core/intelligence/prompts/numerology.ru.md`
+- Функция `prompts.loader.load_prompt` автоматически подставляет профиль в шаблон и возвращает строки для OpenRouter.
+- Клиент `OpenRouterClient` берёт ключ из `.env` и отправляет запрос на модель `openai/gpt-5-chat`.
 
-## Обратная связь
+## Тестирование
+1. Установите pytest (если ещё нет): `pip install pytest`.
+2. Запустите тесты: `pytest numbers_core`
 
-Создавайте issue или pull request, если нашли проблему или хотите предложить улучшение.
+Тесты проверяют расчёт профиля и базовый сценарий оркестратора.
+
+## Godot UI (опционально)
+Папка `numbers-gui` содержит проект на Godot. Он общается с FastAPI-сервером и показывает профиль в графическом интерфейсе. Откройте папку в Godot 4 и, при необходимости, скорректируйте адрес сервера в настройках сцены.
+
+## Частые вопросы
+**Нужен ли интернет?** Для расчёта чисел — нет. Для текстового анализа через OpenRouter — да.
+
+**Что делать, если терминал говорит «command not found»?** Убедитесь, что активировано виртуальное окружение и Python добавлен в PATH. На Windows помогает перезапуск PowerShell после установки Python.
+
+**Можно ли использовать другой язык?** Сейчас шаблоны подготовлены на русском. При желании можно добавить файлы `system.en.md`, `numerology.en.md` и указать `lang="en"` в `analyze_profile`.
+
+**Где менять тонуса или формат текстов?** Отредактируйте Markdown-файлы в `numbers_core/intelligence/prompts`.
+
+## Где искать помощь
+- Проверьте описание модулей в папках `numbers_core/calc`, `numbers_core/core` и `numbers_core/intelligence` — код сопровождается понятными именами функций.
+- За вопросами и предложениями создавайте issue или pull request в репозитории.
+
+Удачных расчётов!
