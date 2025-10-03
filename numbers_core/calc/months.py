@@ -1,4 +1,6 @@
-﻿from .math import extract_base, reduce_number
+from functools import lru_cache
+
+from .math import extract_base, reduce_number
 
 MONTH_NAMES = [
     "Январь",
@@ -17,11 +19,12 @@ MONTH_NAMES = [
 
 
 def digit_sum(n: int) -> int:
-    """Подсчёт суммы цифр числа."""
+    """Суммирует цифры числа."""
 
     return sum(int(d) for d in str(n))
 
 
+@lru_cache(maxsize=64)
 def generate_personal_month_matrix(birthdate: str) -> dict[int, dict[str, str]]:
     """Строит матрицу личных месяцев на 100 лет вперёд."""
 

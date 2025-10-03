@@ -9,7 +9,14 @@ description = "Pure Python numerology calculations with optional AI analysis."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Numbers Core" }]
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic>=2,<3",
+    "requests>=2.32",
+    "jinja2>=3.1",
+    "python-dotenv>=1.0",
+]
 
 [tool.black]
 line-length = 100
@@ -23,3 +30,4 @@ line-length = 100
 target-version = "py311"
 select = ["E", "F", "I", "B", "UP", "C90", "N", "ASYNC", "RUF"]
 ignore = ["E203"]
+
