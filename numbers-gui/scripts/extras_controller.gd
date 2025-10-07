@@ -1,6 +1,8 @@
 extends RefCounted
 class_name ExtrasController
 
+## Управляет текстами для дополнительных кнопок (заглушки/подсказки).
+
 const HINTS := {
 	"compat": "Совместимость: расчёты появятся позже.",
 	"years": "Личный год: модуль в разработке.",
@@ -10,5 +12,5 @@ const HINTS := {
 
 
 func hint_for(kind: String) -> String:
+	## Возвращаем текст подсказки в зависимости от выбранной опции.
 	return HINTS.get(kind, "Функция временно недоступна.")
-

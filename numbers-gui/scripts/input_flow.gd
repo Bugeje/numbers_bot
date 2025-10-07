@@ -1,6 +1,8 @@
 extends RefCounted
 class_name InputFlow
 
+## Держит текущий шаг мастера ввода и валидирует значения.
+
 enum Step { NAME, DATE, RESULT }
 
 const NAME_ERROR_SHORT := "Пожалуйста, укажите минимум имя и фамилию."
@@ -18,17 +20,20 @@ var birthdate := ""
 
 
 func _init() -> void:
+	## Подготавливаем регулярные выражения один раз.
 	_date_regex.compile(r"^(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.(19\d{2}|20\d{2})$")
 	_name_part_regex.compile(r"^[\p{L}][\p{L}\-']+$")
 
 
 func reset() -> void:
+	## Сбрасываем состояние мастера в начальное.
 	current_step = Step.NAME
 	full_name = ""
 	birthdate = ""
 
 
 func submit_name(raw: String) -> Dictionary:
+	## Проверяем корректность ФИО и переводим на следующий шаг.
 	var sanitized := raw.strip_edges()
 	var parts: PackedStringArray = sanitized.split(" ", false)
 	if parts.size() < 2:
@@ -54,6 +59,7 @@ func submit_name(raw: String) -> Dictionary:
 
 
 func submit_birthdate(raw: String) -> Dictionary:
+	## Проверяем дату на соответствие маске ДД.ММ.ГГГГ.
 	var sanitized := raw.strip_edges()
 	if _date_regex.search(sanitized) == null:
 		return {
@@ -72,8 +78,8 @@ func submit_birthdate(raw: String) -> Dictionary:
 
 
 func get_payload() -> Dictionary:
+	## Возвращаем готовый payload для API.
 	return {
 		"full_name": full_name,
 		"birthdate": birthdate,
 	}
-
