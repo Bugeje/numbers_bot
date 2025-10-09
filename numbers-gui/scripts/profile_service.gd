@@ -88,23 +88,24 @@ func _on_request_completed(result: int, code: int, _headers: PackedStringArray, 
 		emit_signal("request_failed", kind, "Ошибка сети: %d" % result)
 		return
 
-	var text := body.get_string_from_utf8()
-	var parsed := JSON.parse_string(text)
+	var text: String = body.get_string_from_utf8()
+	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		emit_signal("request_failed", kind, "Неверный формат ответа: %s" % text)
 		return
 
 	var data: Dictionary = parsed
 	if code != 200:
-		var detail := data.get("detail", text)
+		var detail: String = str(data.get("detail", text))
 		emit_signal("request_failed", kind, "Ошибка %d: %s" % [code, detail])
 		return
 
 	if kind == "analysis" or data.has("analysis"):
-		var analysis_text := str(data.get("analysis", ""))
-		var profile_data := data.get("profile", {})
-		if typeof(profile_data) != TYPE_DICTIONARY:
-			profile_data = {}
+		var analysis_text: String = str(data.get("analysis", ""))
+		var profile_variant: Variant = data.get("profile", {})
+		var profile_data: Dictionary = {}
+		if typeof(profile_variant) == TYPE_DICTIONARY:
+			profile_data = profile_variant
 		emit_signal("analysis_ready", profile_data, analysis_text)
 	else:
 		emit_signal("profile_ready", data)
